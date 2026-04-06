@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 
 export type UserRole = 'admin' | 'client';
+export type PlanType = 'Starter' | 'Business' | 'Pro';
 export type AdminPage = 'dashboard' | 'clients' | 'subscriptions' | 'plans' | 'payments' | 'support' | 'settings';
-export type CrmPage = 'dashboard' | 'leads' | 'pipeline' | 'followups' | 'reports' | 'settings';
+export type CrmPage = 'dashboard' | 'leads' | 'pipeline' | 'followups' | 'tasks' | 'team' | 'reports' | 'broadcast' | 'automation' | 'settings';
 
 export interface User {
   id: string;
@@ -11,6 +12,19 @@ export interface User {
   role: UserRole;
   companyId?: string;
   companyName?: string;
+  planName?: PlanType;
+  planId?: string;
+  subscriptionExpiry?: string;
+  subscriptionStatus?: string;
+}
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  read: boolean;
+  createdAt: string;
 }
 
 interface AppState {
@@ -23,20 +37,33 @@ interface AppState {
   adminPage: AdminPage;
   crmPage: CrmPage;
 
+  // Notifications
+  notifications: Notification[];
+  showNotifications: boolean;
+
   // Actions
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   setAdminPage: (page: AdminPage) => void;
   setCrmPage: (page: CrmPage) => void;
   setLoading: (loading: boolean) => void;
+  setShowNotifications: (show: boolean) => void;
+  markNotificationRead: (id: string) => void;
+  addNotification: (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
   adminPage: 'dashboard',
   crmPage: 'dashboard',
+  notifications: [
+    { id: '1', title: 'Welcome!', message: 'Welcome to Trovira CRM. Get started by exploring the dashboard.', type: 'info', read: false, createdAt: new Date().toISOString() },
+    { id: '2', title: 'New Lead Added', message: 'A new lead was captured from WhatsApp.', type: 'success', read: false, createdAt: new Date().toISOString() },
+    { id: '3', title: 'Follow-up Reminder', message: 'You have follow-ups scheduled for today.', type: 'warning', read: false, createdAt: new Date().toISOString() },
+  ],
+  showNotifications: false,
 
   login: async (email: string, password: string) => {
     set({ isLoading: true });
@@ -66,4 +93,60 @@ export const useAppStore = create<AppState>((set) => ({
   setAdminPage: (page) => set({ adminPage: page }),
   setCrmPage: (page) => set({ crmPage: page }),
   setLoading: (loading) => set({ isLoading: loading }),
+  setShowNotifications: (show) => set({ showNotifications: show }),
+  markNotificationRead: (id) => {
+    set({ notifications: get().notifications.map(n => n.id === id ? { ...n, read: true } : n) });
+  },
+  addNotification: (notification) => {
+    const newNotification: Notification = {
+      ...notification,
+      id: Date.now().toString(),
+      read: false,
+      createdAt: new Date().toISOString(),
+    };
+    set({ notifications: [newNotification, ...get().notifications] });
+  },
 }));
+
+// Plan feature flags
+export function getPlanFeatures(plan: PlanType | undefined) {
+  const features = {
+    Starter: {
+      pages: ['dashboard', 'leads', 'pipeline', 'followups', 'reports', 'settings'] as CrmPage[],
+      basicPipeline: true,
+      basicReports: true,
+      tasks: false,
+      team: false,
+      broadcast: false,
+      automation: false,
+      export: false,
+      email: false,
+      whatsapp: false,
+    },
+    Business: {
+      pages: ['dashboard', 'leads', 'pipeline', 'followups', 'tasks', 'team', 'reports', 'settings'] as CrmPage[],
+      basicPipeline: false,
+      basicReports: false,
+      tasks: true,
+      team: true,
+      broadcast: false,
+      automation: false,
+      export: true,
+      email: true,
+      whatsapp: true,
+    },
+    Pro: {
+      pages: ['dashboard', 'leads', 'pipeline', 'followups', 'tasks', 'team', 'reports', 'broadcast', 'automation', 'settings'] as CrmPage[],
+      basicPipeline: false,
+      basicReports: false,
+      tasks: true,
+      team: true,
+      broadcast: true,
+      automation: true,
+      export: true,
+      email: true,
+      whatsapp: true,
+    },
+  };
+  return features[plan || 'Starter'];
+}

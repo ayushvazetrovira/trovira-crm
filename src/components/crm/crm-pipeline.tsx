@@ -91,7 +91,7 @@ const moveableStages: Record<string, string[]> = {
   Lost: ['Contacted', 'Interested'],
 };
 
-export function CrmPipeline() {
+export function CrmPipeline({ isBasic = false }: { isBasic?: boolean }) {
   const { user } = useAppStore();
   const [pipeline, setPipeline] = useState<Record<string, PipelineLead[]>>({});
   const [loading, setLoading] = useState(true);
@@ -174,7 +174,14 @@ export function CrmPipeline() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <Kanban className="h-5 w-5 text-teal-600" />
-        <h3 className="text-lg font-semibold text-gray-900">Sales Pipeline</h3>
+        <h3 className="text-lg font-semibold text-gray-900">
+          {isBasic ? 'Basic Pipeline' : 'Sales Pipeline'}
+        </h3>
+        {isBasic && (
+          <Badge variant="secondary" className="bg-gray-100 text-gray-600 text-xs">
+            Starter Plan
+          </Badge>
+        )}
         <span className="text-sm text-gray-400">
           {Object.values(pipeline).flat().length} leads
         </span>

@@ -22,6 +22,12 @@ import {
   Shield,
   Crown,
   CheckCircle2,
+  XCircle,
+  Users,
+  Target,
+  Zap,
+  Megaphone,
+  Bot,
 } from 'lucide-react';
 
 interface Settings {
@@ -285,33 +291,91 @@ export function CrmSettings() {
                   <Crown className="h-6 w-6 text-teal-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900">Free Plan</p>
-                  <p className="text-sm text-gray-500">Basic CRM features</p>
+                  <p className="font-semibold text-gray-900">{user?.planName || 'Free Plan'}</p>
+                  <p className="text-sm text-gray-500">
+                    {user?.planName === 'Starter' && 'Best for single user small business'}
+                    {user?.planName === 'Business' && 'Best for growing teams'}
+                    {user?.planName === 'Pro' && 'Best for companies and larger teams'}
+                    {!user?.planName && 'Basic CRM features'}
+                  </p>
                 </div>
               </div>
-              <Badge className="bg-teal-100 text-teal-700 border-teal-200" variant="outline">
-                Active
+              <Badge
+                className={`${
+                  user?.subscriptionStatus === 'active'
+                    ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                    : 'bg-red-100 text-red-700 border-red-200'
+                }`}
+                variant="outline"
+              >
+                {user?.subscriptionStatus === 'active' ? 'Active' : user?.subscriptionStatus === 'expired' ? 'Expired' : 'Active'}
               </Badge>
             </div>
             <Separator className="my-4" />
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+
+            {/* Plan Features */}
+            <div className="space-y-2 mb-4">
+              {(user?.planName === 'Starter' ? [
+                { icon: Users, label: 'Dashboard, Leads, Basic Pipeline' },
+                { icon: Clock, label: 'Follow-ups, Notes' },
+                { icon: Target, label: 'Basic Reports' },
+                { icon: CheckCircle2, label: '1 User, 500 Lead Limit' },
+              ] : user?.planName === 'Business' ? [
+                { icon: Users, label: 'Everything in Starter + Tasks, Team' },
+                { icon: Mail, label: 'Email & WhatsApp Inbox' },
+                { icon: Target, label: 'Advanced Pipeline & Reports' },
+                { icon: CheckCircle2, label: '5 Users, 5,000 Lead Limit' },
+              ] : user?.planName === 'Pro' ? [
+                { icon: Users, label: 'Everything in Business + Full Control' },
+                { icon: Zap, label: 'Workflow Automation' },
+                { icon: Megaphone, label: 'WhatsApp Broadcast' },
+                { icon: Bot, label: 'API, Custom Fields, Branding' },
+                { icon: CheckCircle2, label: '15 Users, Unlimited Leads' },
+              ] : [
+                { icon: Users, label: 'Dashboard & Leads' },
+                { icon: CheckCircle2, label: 'Basic Features' },
+              ]).map((item, idx) => {
+                const Icon = item.icon;
+                return (
+                  <div key={idx} className="flex items-center gap-2 text-sm text-gray-700">
+                    <Icon className="h-4 w-4 text-teal-600" />
+                    <span>{item.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
               <div>
-                <p className="text-gray-500">Lead Limit</p>
-                <p className="font-medium">50 leads</p>
+                <p className="text-gray-500">Plan</p>
+                <p className="font-medium">{user?.planName || 'Free'}</p>
               </div>
+              {user?.subscriptionExpiry && (
+                <div>
+                  <p className="text-gray-500">Expires</p>
+                  <p className="font-medium">{new Date(user.subscriptionExpiry).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                </div>
+              )}
               <div>
-                <p className="text-gray-500">Users</p>
-                <p className="font-medium">1 user</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Support</p>
-                <p className="font-medium">Email</p>
-              </div>
-              <div>
-                <p className="text-gray-500">API Access</p>
-                <p className="font-medium">Limited</p>
+                <p className="text-gray-500">Status</p>
+                <p className={`font-medium ${user?.subscriptionStatus === 'active' ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {user?.subscriptionStatus === 'active' ? 'Active' : user?.subscriptionStatus === 'expired' ? 'Expired' : 'Active'}
+                </p>
               </div>
             </div>
+
+            {/* Upgrade prompt for Starter users */}
+            {user?.planName === 'Starter' && (
+              <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                <div className="flex items-start gap-2">
+                  <Zap className="h-4 w-4 text-amber-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">Upgrade for more features</p>
+                    <p className="text-xs text-amber-600 mt-0.5">Get Tasks, Team, Email, WhatsApp, and more with Business or Pro plan.</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

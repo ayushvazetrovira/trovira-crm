@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import {
   LayoutDashboard,
   Users,
@@ -21,6 +22,11 @@ import {
   ChevronLeft,
   Bell,
   Search,
+  X,
+  Info,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
 } from 'lucide-react';
 import { AdminDashboard } from './admin-dashboard';
 import { AdminClients } from './admin-clients';
@@ -39,6 +45,20 @@ const menuItems: { icon: typeof LayoutDashboard; label: string; page: AdminPage 
   { icon: HeadphonesIcon, label: 'Support', page: 'support' },
   { icon: Settings, label: 'Settings', page: 'settings' },
 ];
+
+const notifIcons = {
+  info: Info,
+  success: CheckCircle2,
+  warning: AlertTriangle,
+  error: XCircle,
+};
+
+const notifColors = {
+  info: 'bg-sky-100 text-sky-600',
+  success: 'bg-emerald-100 text-emerald-600',
+  warning: 'bg-amber-100 text-amber-600',
+  error: 'bg-red-100 text-red-600',
+};
 
 function SidebarContent({ collapsed, onNavigate, currentPage }: {
   collapsed: boolean;
@@ -96,10 +116,74 @@ function SidebarContent({ collapsed, onNavigate, currentPage }: {
   );
 }
 
+function NotificationsPanel({ onClose }: { onClose: () => void }) {
+  const { notifications, markNotificationRead } = useAppStore();
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  return (
+    <div className="absolute right-0 top-12 w-80 sm:w-96 bg-white rounded-xl border shadow-xl z-50">
+      <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center gap-2">
+          <Bell className="h-4 w-4 text-gray-600" />
+          <h3 className="font-semibold text-sm">Notifications</h3>
+          {unreadCount > 0 && (
+            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs">
+              {unreadCount} new
+            </Badge>
+          )}
+        </div>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <ScrollArea className="max-h-[400px]">
+        {notifications.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+            <Bell className="h-8 w-8 mb-2 opacity-30" />
+            <p className="text-sm">No notifications</p>
+          </div>
+        ) : (
+          <div className="divide-y">
+            {notifications.map((notif) => {
+              const NotifIcon = notifIcons[notif.type] || Info;
+              const colorClass = notifColors[notif.type] || notifColors.info;
+              return (
+                <button
+                  key={notif.id}
+                  onClick={() => markNotificationRead(notif.id)}
+                  className={`w-full text-left p-3 hover:bg-gray-50 transition-colors ${!notif.read ? 'bg-emerald-50/50' : ''}`}
+                >
+                  <div className="flex gap-3">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-full shrink-0 ${colorClass}`}>
+                      <NotifIcon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className={`text-sm ${!notif.read ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>
+                          {notif.title}
+                        </p>
+                        {!notif.read && (
+                          <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notif.message}</p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  );
+}
+
 export function AdminPanel() {
-  const { user, adminPage, setAdminPage, logout } = useAppStore();
+  const { user, adminPage, setAdminPage, notifications, showNotifications, setShowNotifications } = useAppStore();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const renderPage = () => {
     switch (adminPage) {
@@ -130,7 +214,7 @@ export function AdminPanel() {
         <SidebarContent collapsed={collapsed} onNavigate={handleNavigate} currentPage={adminPage} />
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute top-6 left-[248px] z-10 hidden lg:flex items-center justify-center w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 transition-all"
+          className="absolute top-6 z-10 hidden lg:flex items-center justify-center w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 transition-all"
           style={{ left: collapsed ? '56px' : '248px' }}
         >
           <ChevronLeft className={`w-3.5 h-3.5 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
@@ -166,10 +250,24 @@ export function AdminPanel() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-            </Button>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                onClick={() => setShowNotifications(!showNotifications)}
+              >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </Button>
+              {showNotifications && (
+                <NotificationsPanel onClose={() => setShowNotifications(false)} />
+              )}
+            </div>
             <Separator orientation="vertical" className="h-8" />
             <div className="flex items-center gap-3">
               <Avatar className="w-8 h-8">

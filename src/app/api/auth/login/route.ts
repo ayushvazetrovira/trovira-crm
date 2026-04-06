@@ -11,12 +11,25 @@ export async function POST(request: Request) {
 
     const user = await db.user.findUnique({
       where: { email },
-      include: { company: true },
+      include: {
+        company: {
+          include: {
+            plan: true,
+            subscriptions: {
+              where: { status: 'active' },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
+          },
+        },
+      },
     });
 
     if (!user || user.password !== password) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
+
+    const activeSubscription = user.company?.subscriptions?.[0] || null;
 
     return NextResponse.json({
       user: {
@@ -26,6 +39,10 @@ export async function POST(request: Request) {
         role: user.role,
         companyId: user.companyId,
         companyName: user.company?.name,
+        planName: user.company?.plan?.name,
+        planId: user.company?.planId,
+        subscriptionExpiry: activeSubscription?.expiryDate || null,
+        subscriptionStatus: activeSubscription?.status || 'none',
       },
     });
   } catch (error) {
