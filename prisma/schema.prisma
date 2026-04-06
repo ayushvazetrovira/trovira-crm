@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  password      String
+  role          String    @default("client") // admin, client
+  companyId     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company       Company?  @relation(fields: [companyId], references: [id])
+  activityLogs  ActivityLog[]
+}
+
+model Company {
+  id            String    @id @default(cuid())
+  name          String
+  contactPerson String
+  mobile        String
+  email         String
+  planId        String
+  status        String    @default("active") // active, inactive, suspended
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  plan          Plan      @relation(fields: [planId], references: [id])
+  subscriptions Subscription[]
+  payments      Payment[]
+  leads         Lead[]
+  followups     Followup[]
+  users         User[]
+  tickets       SupportTicket[]
+  settings      CrmSetting[]
+}
+
+model Plan {
+  id            String    @id @default(cuid())
+  name          String    @unique
+  price         Int
+  userLimit     Int
+  leadLimit     Int       @default(500)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  subscriptions Subscription[]
+  companies     Company[]
+  payments      Payment[]
+}
+
+model Subscription {
+  id            String    @id @default(cuid())
+  companyId     String
+  planId        String
+  startDate     DateTime
+  expiryDate    DateTime
+  status        String    @default("active") // active, expired, suspended
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company       Company   @relation(fields: [companyId], references: [id])
+  plan          Plan      @relation(fields: [planId], references: [id])
+}
+
+model Payment {
+  id            String    @id @default(cuid())
+  companyId     String
+  planId        String
+  amount        Int
+  paymentDate   DateTime  @default(now())
+  method        String    @default("UPI") // UPI, Bank, Card
+  status        String    @default("paid") // paid, pending, failed
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company       Company   @relation(fields: [companyId], references: [id])
+  plan          Plan      @relation(fields: [planId], references: [id])
+}
+
+model Lead {
+  id            String    @id @default(cuid())
+  companyId     String
+  name          String
+  phone         String
+  email         String?
+  company       String?
+  source        String    @default("manual") // WhatsApp, Facebook, Instagram, Website, Referral, manual
+  status        String    @default("New") // New, Contacted, Interested, Proposal Sent, Won, Lost
+  followupDate  DateTime?
+  notes         String?
+  value         Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  companyRef    Company   @relation(fields: [companyId], references: [id])
+  notesList     LeadNote[]
+  stageHistory  LeadStageHistory[]
+  followups     Followup[]
+}
+
+model LeadNote {
+  id            String    @id @default(cuid())
+  leadId        String
+  content       String
+  createdAt     DateTime  @default(now())
+
+  lead          Lead      @relation(fields: [leadId], references: [id])
+}
+
+model Followup {
+  id            String    @id @default(cuid())
+  leadId        String
+  companyId     String
+  date          DateTime
+  time          String?
+  purpose       String
+  status        String    @default("pending") // pending, completed, overdue
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  lead          Lead      @relation(fields: [leadId], references: [id])
+  company       Company   @relation(fields: [companyId], references: [id])
+}
+
+model LeadStageHistory {
+  id            String    @id @default(cuid())
+  leadId        String
+  fromStage     String?
+  toStage       String
+  createdAt     DateTime  @default(now())
+
+  lead          Lead      @relation(fields: [leadId], references: [id])
+}
+
+model SupportTicket {
+  id            String    @id @default(cuid())
+  companyId     String
+  subject       String
+  issue         String
+  status        String    @default("open") // open, in_progress, closed
+  priority      String    @default("medium") // low, medium, high
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company       Company   @relation(fields: [companyId], references: [id])
+}
+
+model ActivityLog {
+  id            String    @id @default(cuid())
+  userId        String
+  companyId     String?
+  action        String
+  details       String?
+  createdAt     DateTime  @default(now())
+
+  user          User      @relation(fields: [userId], references: [id])
+}
+
+model CrmSetting {
+  id            String    @id @default(cuid())
+  companyId     String
+  businessName  String?
+  whatsappNumber String?
+  logo          String?
+  email         String?
+  phone         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company       Company   @relation(fields: [companyId], references: [id])
+}
