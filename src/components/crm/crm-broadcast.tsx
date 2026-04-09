@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,89 +53,20 @@ interface Broadcast {
   name: string;
   message: string;
   recipients: number;
-  status: BroadcastStatus;
+  status: string;
   delivered: number;
   read: number;
   failed: number;
-  date: string;
+  createdAt: string;
 }
 
-const statusConfig: Record<BroadcastStatus, { label: string; color: string; icon: React.ElementType }> = {
+const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   sent: { label: 'Sent', color: 'bg-teal-100 text-teal-700', icon: Send },
   delivered: { label: 'Delivered', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 },
   queued: { label: 'Queued', color: 'bg-amber-100 text-amber-700', icon: Clock },
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-600', icon: Clock },
   failed: { label: 'Failed', color: 'bg-red-100 text-red-700', icon: XCircle },
 };
-
-const sampleBroadcasts: Broadcast[] = [
-  {
-    id: '1',
-    name: 'February Promotion',
-    message: 'Hello! We have exciting offers this February. Get 20% off on all our services. Contact us today to learn more!',
-    recipients: 145,
-    status: 'sent',
-    delivered: 138,
-    read: 112,
-    failed: 7,
-    date: '2025-02-01',
-  },
-  {
-    id: '2',
-    name: 'New Year Greetings',
-    message: 'Wishing you a very Happy New Year! May this year bring you success and happiness. We look forward to serving you.',
-    recipients: 230,
-    status: 'delivered',
-    delivered: 225,
-    read: 198,
-    failed: 5,
-    date: '2025-01-01',
-  },
-  {
-    id: '3',
-    name: 'Product Launch - CRM Pro',
-    message: 'We are thrilled to announce our new CRM Pro plan! Get advanced automation, broadcast features, and more. Upgrade now!',
-    recipients: 180,
-    status: 'sent',
-    delivered: 170,
-    read: 95,
-    failed: 10,
-    date: '2025-01-15',
-  },
-  {
-    id: '4',
-    name: 'Follow-up Reminder',
-    message: 'Hi! Just checking in to see if you had a chance to review our proposal. Feel free to reach out with any questions.',
-    recipients: 42,
-    status: 'queued',
-    delivered: 0,
-    read: 0,
-    failed: 0,
-    date: '2025-02-10',
-  },
-  {
-    id: '5',
-    name: 'Weekend Workshop Invite',
-    message: 'Join us for a free workshop on "Growing Your Business with CRM" this Saturday at 10 AM. Register now!',
-    recipients: 98,
-    status: 'draft',
-    delivered: 0,
-    read: 0,
-    failed: 0,
-    date: '2025-02-14',
-  },
-  {
-    id: '6',
-    name: 'Payment Reminder',
-    message: 'This is a gentle reminder that your subscription payment is due on Feb 20th. Please ensure timely payment to avoid service interruption.',
-    recipients: 15,
-    status: 'failed',
-    delivered: 8,
-    read: 5,
-    failed: 7,
-    date: '2025-02-08',
-  },
-];
 
 const emptyForm = {
   name: '',
@@ -145,12 +76,43 @@ const emptyForm = {
 
 export function CrmBroadcast() {
   const { user } = useAppStore();
-  const [broadcasts, setBroadcasts] = useState<Broadcast[]>(sampleBroadcasts);
-  const [loading, setLoading] = useState(false);
+  const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+
+  const fetchBroadcasts = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/crm/broadcasts?companyId=${user?.companyId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const mapped: Broadcast[] = (data.broadcasts || []).map((b: Record<string, unknown>) => ({
+          id: b.id,
+          name: b.name,
+          message: b.message,
+          recipients: b.recipients,
+          status: b.status,
+          delivered: b.delivered,
+          read: b.readCount,
+          failed: b.failed,
+          createdAt: b.createdAt,
+        }));
+        setBroadcasts(mapped);
+      } else {
+        toast.error('Failed to fetch broadcasts');
+      }
+    } catch {
+      toast.error('Failed to fetch broadcasts');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.companyId]);
+
+  useEffect(() => {
+    fetchBroadcasts();
+  }, [fetchBroadcasts]);
 
   const totalSent = broadcasts.filter((b) => b.status === 'sent' || b.status === 'delivered').reduce((acc, b) => acc + b.recipients, 0);
   const totalDelivered = broadcasts.reduce((acc, b) => acc + b.delivered, 0);
@@ -168,7 +130,7 @@ export function CrmBroadcast() {
     ? broadcasts
     : broadcasts.filter((b) => b.status === activeTab);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!form.name.trim()) {
       toast.error('Campaign name is required');
       return;
@@ -178,7 +140,7 @@ export function CrmBroadcast() {
       return;
     }
     setSaving(true);
-    setTimeout(() => {
+    try {
       const recipientCount = form.recipientGroup === 'all'
         ? 120
         : form.recipientGroup === 'new'
@@ -187,37 +149,62 @@ export function CrmBroadcast() {
         ? 38
         : 37;
 
-      const newBroadcast: Broadcast = {
-        id: Date.now().toString(),
-        name: form.name.trim(),
-        message: form.message.trim(),
-        recipients: recipientCount,
-        status: 'draft',
-        delivered: 0,
-        read: 0,
-        failed: 0,
-        date: new Date().toISOString().split('T')[0],
-      };
-      setBroadcasts((prev) => [newBroadcast, ...prev]);
-      setForm(emptyForm);
-      setShowCreateDialog(false);
+      const res = await fetch('/api/crm/broadcasts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: user?.companyId,
+          name: form.name.trim(),
+          message: form.message.trim(),
+          recipients: recipientCount,
+          status: 'draft',
+        }),
+      });
+      if (res.ok) {
+        setForm(emptyForm);
+        setShowCreateDialog(false);
+        toast.success('Broadcast campaign created successfully');
+        fetchBroadcasts();
+      } else {
+        toast.error('Failed to create broadcast');
+      }
+    } catch {
+      toast.error('Failed to create broadcast');
+    } finally {
       setSaving(false);
-      toast.success('Broadcast campaign created successfully');
-    }, 400);
+    }
   };
 
-  const handleSend = (broadcastId: string) => {
-    setBroadcasts((prev) =>
-      prev.map((b) =>
-        b.id === broadcastId ? { ...b, status: 'queued' as BroadcastStatus } : b
-      )
-    );
-    toast.success('Broadcast queued for sending');
+  const handleSend = async (broadcastId: string) => {
+    try {
+      const res = await fetch('/api/crm/broadcasts', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: broadcastId, status: 'queued' }),
+      });
+      if (res.ok) {
+        toast.success('Broadcast queued for sending');
+        fetchBroadcasts();
+      } else {
+        toast.error('Failed to send broadcast');
+      }
+    } catch {
+      toast.error('Failed to send broadcast');
+    }
   };
 
-  const handleDelete = (broadcastId: string) => {
-    setBroadcasts((prev) => prev.filter((b) => b.id !== broadcastId));
-    toast.success('Broadcast deleted successfully');
+  const handleDelete = async (broadcastId: string) => {
+    try {
+      const res = await fetch(`/api/crm/broadcasts?id=${broadcastId}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Broadcast deleted successfully');
+        fetchBroadcasts();
+      } else {
+        toast.error('Failed to delete broadcast');
+      }
+    } catch {
+      toast.error('Failed to delete broadcast');
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -319,7 +306,7 @@ export function CrmBroadcast() {
                       <TableBody>
                         {filteredBroadcasts.length > 0 ? (
                           filteredBroadcasts.map((bc) => {
-                            const statusConf = statusConfig[bc.status];
+                            const statusConf = statusConfig[bc.status] || statusConfig.draft;
                             const StatusIcon = statusConf.icon;
 
                             return (
@@ -356,7 +343,7 @@ export function CrmBroadcast() {
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="text-sm text-gray-500 hidden sm:table-cell">
-                                  {formatDate(bc.date)}
+                                  {formatDate(bc.createdAt)}
                                 </TableCell>
                                 <TableCell className="text-right">
                                   <div className="flex items-center justify-end gap-1">

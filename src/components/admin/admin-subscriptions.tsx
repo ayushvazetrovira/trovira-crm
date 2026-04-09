@@ -23,15 +23,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { RefreshCw, ArrowUpCircle, CalendarClock } from 'lucide-react';
+import { RefreshCw, CalendarClock } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Plan {
@@ -64,13 +57,11 @@ function StatusBadge({ status }: { status: string }) {
 
 export function AdminSubscriptions() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<'renew' | 'upgrade' | 'extend'>('renew');
+  const [dialogMode, setDialogMode] = useState<'renew' | 'extend'>('renew');
   const [selectedSub, setSelectedSub] = useState<Subscription | null>(null);
   const [extendDays, setExtendDays] = useState('30');
-  const [newPlanId, setNewPlanId] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const fetchSubscriptions = useCallback(async () => {
@@ -86,27 +77,13 @@ export function AdminSubscriptions() {
     }
   }, []);
 
-  const fetchPlans = async () => {
-    try {
-      const res = await fetch('/api/admin/plans');
-      if (res.ok) {
-        const json = await res.json();
-        setPlans(json);
-      }
-    } catch {
-      // non-critical
-    }
-  };
-
   useEffect(() => {
-    fetchPlans();
     fetchSubscriptions();
   }, [fetchSubscriptions]);
 
-  const openDialog = (sub: Subscription, mode: 'renew' | 'upgrade' | 'extend') => {
+  const openDialog = (sub: Subscription, mode: 'renew' | 'extend') => {
     setSelectedSub(sub);
     setDialogMode(mode);
-    setNewPlanId('');
     setExtendDays('30');
     setDialogOpen(true);
   };
@@ -123,16 +100,7 @@ export function AdminSubscriptions() {
         const newExpiry = new Date(currentExpiry.getTime() + days * 24 * 60 * 60 * 1000);
         body.expiryDate = newExpiry.toISOString();
         body.status = 'active';
-      } else if (dialogMode === 'upgrade') {
-        if (!newPlanId) {
-          toast.error('Please select a new plan');
-          setSubmitting(false);
-          return;
-        }
-        body.planId = newPlanId;
-        body.status = 'active';
       } else {
-        // Renew: reset expiry to 30 days from now
         const newExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
         body.expiryDate = newExpiry.toISOString();
         body.status = 'active';
@@ -149,7 +117,7 @@ export function AdminSubscriptions() {
         throw new Error(err.error || 'Operation failed');
       }
 
-      const actionLabel = dialogMode === 'renew' ? 'Renewed' : dialogMode === 'upgrade' ? 'Upgraded' : 'Extended';
+      const actionLabel = dialogMode === 'renew' ? 'Renewed' : 'Extended';
       toast.success(`Subscription ${actionLabel} successfully`);
       setDialogOpen(false);
       fetchSubscriptions();
@@ -177,7 +145,6 @@ export function AdminSubscriptions() {
               <TableHeader>
                 <TableRow className="bg-neutral-50 hover:bg-neutral-50">
                   <TableHead className="font-semibold">Company</TableHead>
-                  <TableHead className="font-semibold">Plan</TableHead>
                   <TableHead className="font-semibold hidden md:table-cell">Start Date</TableHead>
                   <TableHead className="font-semibold">Expiry Date</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
@@ -187,7 +154,7 @@ export function AdminSubscriptions() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6}>
+                    <TableCell colSpan={5}>
                       <div className="space-y-3 py-2">
                         {Array.from({ length: 5 }).map((_, i) => (
                           <Skeleton key={i} className="h-14 w-full" />
@@ -197,7 +164,7 @@ export function AdminSubscriptions() {
                   </TableRow>
                 ) : subscriptions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-neutral-400">
+                    <TableCell colSpan={5} className="text-center py-12 text-neutral-400">
                       No subscriptions found
                     </TableCell>
                   </TableRow>
@@ -209,11 +176,6 @@ export function AdminSubscriptions() {
                           <p className="font-medium text-neutral-900">{sub.company.name}</p>
                           <p className="text-xs text-neutral-400">{sub.company.contactPerson}</p>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="bg-neutral-100 text-neutral-700">
-                          {sub.plan.name}
-                        </Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-neutral-500">
                         {formatDate(sub.startDate)}
@@ -235,16 +197,6 @@ export function AdminSubscriptions() {
                           >
                             <RefreshCw className="h-3.5 w-3.5" />
                             <span className="hidden sm:inline">Renew</span>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 text-xs gap-1 text-violet-600 hover:bg-violet-50 hover:text-violet-700"
-                            onClick={() => openDialog(sub, 'upgrade')}
-                            title="Change plan"
-                          >
-                            <ArrowUpCircle className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">Upgrade</span>
                           </Button>
                           <Button
                             variant="ghost"
@@ -273,15 +225,11 @@ export function AdminSubscriptions() {
           <DialogHeader>
             <DialogTitle>
               {dialogMode === 'renew' && 'Renew Subscription'}
-              {dialogMode === 'upgrade' && 'Upgrade Plan'}
               {dialogMode === 'extend' && 'Extend Subscription'}
             </DialogTitle>
             <DialogDescription>
               {selectedSub && (
-                <>
-                  For <span className="font-semibold text-neutral-900">{selectedSub.company.name}</span>
-                  {' '}on <span className="font-semibold">{selectedSub.plan.name}</span>
-                </>
+                <>For <span className="font-semibold text-neutral-900">{selectedSub.company.name}</span></>
               )}
             </DialogDescription>
           </DialogHeader>
@@ -310,29 +258,6 @@ export function AdminSubscriptions() {
                 </p>
               </div>
             )}
-
-            {dialogMode === 'upgrade' && (
-              <div className="space-y-3">
-                <Label htmlFor="new-plan">Select New Plan</Label>
-                <Select value={newPlanId} onValueChange={setNewPlanId}>
-                  <SelectTrigger id="new-plan">
-                    <SelectValue placeholder="Choose a plan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {plans
-                      .filter((p) => p.isActive && p.id !== selectedSub?.plan.id)
-                      .map((plan) => (
-                        <SelectItem key={plan.id} value={plan.id}>
-                          {plan.name} - ₹{plan.price.toLocaleString('en-IN')}/mo
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-neutral-500">
-                  Upgrading will change the company plan and create a new payment entry.
-                </p>
-              </div>
-            )}
           </div>
 
           <DialogFooter>
@@ -348,8 +273,6 @@ export function AdminSubscriptions() {
                 ? 'Processing...'
                 : dialogMode === 'renew'
                 ? 'Renew Now'
-                : dialogMode === 'upgrade'
-                ? 'Upgrade Plan'
                 : 'Extend Now'}
             </Button>
           </DialogFooter>

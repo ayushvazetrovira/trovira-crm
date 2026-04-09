@@ -60,7 +60,7 @@ const statusBarColors: Record<string, string> = {
   Lost: '#ef4444',
 };
 
-export function CrmReports({ isBasic = false }: { isBasic?: boolean }) {
+export function CrmReports() {
   const { user } = useAppStore();
   const [data, setData] = useState<ReportsData | null>(null);
   const [loading, setLoading] = useState(true);

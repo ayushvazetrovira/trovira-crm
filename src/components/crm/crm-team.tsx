@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -45,103 +45,78 @@ interface TeamMember {
   id: string;
   name: string;
   email: string;
-  role: TeamRole;
+  role: string;
   phone: string;
-  status: MemberStatus;
+  status: string;
   tasksAssigned: number;
   leadsManaged: number;
   joinedAt: string;
 }
 
-const roleConfig: Record<TeamRole, { color: string; icon: React.ElementType }> = {
+const roleConfig: Record<string, { color: string; icon: React.ElementType }> = {
   Admin: { color: 'bg-purple-100 text-purple-700', icon: Shield },
   Manager: { color: 'bg-teal-100 text-teal-700', icon: UserCog },
   Agent: { color: 'bg-sky-100 text-sky-700', icon: UserCheck },
   Viewer: { color: 'bg-gray-100 text-gray-600', icon: Users },
+  client: { color: 'bg-sky-100 text-sky-700', icon: UserCheck },
+  inactive_client: { color: 'bg-gray-100 text-gray-600', icon: Users },
 };
-
-const sampleMembers: TeamMember[] = [
-  {
-    id: '1',
-    name: 'Rajesh Kumar',
-    email: 'rajesh@abcschool.com',
-    role: 'Admin',
-    phone: '+91 98765 43210',
-    status: 'active',
-    tasksAssigned: 12,
-    leadsManaged: 48,
-    joinedAt: '2024-01-15',
-  },
-  {
-    id: '2',
-    name: 'Neha Patel',
-    email: 'neha@abcschool.com',
-    role: 'Manager',
-    phone: '+91 98765 43211',
-    status: 'active',
-    tasksAssigned: 8,
-    leadsManaged: 35,
-    joinedAt: '2024-03-20',
-  },
-  {
-    id: '3',
-    name: 'Amit Singh',
-    email: 'amit@abcschool.com',
-    role: 'Agent',
-    phone: '+91 98765 43212',
-    status: 'active',
-    tasksAssigned: 15,
-    leadsManaged: 62,
-    joinedAt: '2024-02-10',
-  },
-  {
-    id: '4',
-    name: 'Sneha Gupta',
-    email: 'sneha@abcschool.com',
-    role: 'Agent',
-    phone: '+91 98765 43213',
-    status: 'active',
-    tasksAssigned: 6,
-    leadsManaged: 22,
-    joinedAt: '2024-06-01',
-  },
-  {
-    id: '5',
-    name: 'Vikram Joshi',
-    email: 'vikram@abcschool.com',
-    role: 'Viewer',
-    phone: '+91 98765 43214',
-    status: 'inactive',
-    tasksAssigned: 3,
-    leadsManaged: 10,
-    joinedAt: '2024-04-15',
-  },
-  {
-    id: '6',
-    name: 'Pooja Reddy',
-    email: 'pooja@abcschool.com',
-    role: 'Agent',
-    phone: '+91 98765 43215',
-    status: 'active',
-    tasksAssigned: 9,
-    leadsManaged: 41,
-    joinedAt: '2024-05-22',
-  },
-];
 
 const emptyForm = {
   name: '',
   email: '',
-  role: 'Agent' as TeamRole,
+  role: 'Agent' as string,
+  password: 'Client@123',
 };
 
 export function CrmTeam() {
   const { user } = useAppStore();
-  const [members, setMembers] = useState<TeamMember[]>(sampleMembers);
-  const [loading, setLoading] = useState(false);
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+
+  const fetchMembers = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/crm/team?companyId=${user?.companyId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const mapped: TeamMember[] = (data.members || []).map((m: Record<string, unknown>) => {
+          const role = m.role as string;
+          const isInactive = role === 'inactive_client';
+          let displayRole = 'Agent';
+          if (role === 'Admin' || role === 'admin') displayRole = 'Admin';
+          else if (role === 'Manager' || role === 'manager') displayRole = 'Manager';
+          else if (role === 'Viewer' || role === 'viewer') displayRole = 'Viewer';
+          else if (isInactive) displayRole = 'Agent';
+
+          return {
+            id: m.id,
+            name: m.name,
+            email: m.email,
+            role: displayRole,
+            phone: (m.phone as string) || '-',
+            status: isInactive ? 'inactive' : 'active',
+            tasksAssigned: (m.tasksAssigned as number) || 0,
+            leadsManaged: (m.leadsManaged as number) || 0,
+            joinedAt: m.createdAt,
+          };
+        });
+        setMembers(mapped);
+      } else {
+        toast.error('Failed to fetch team members');
+      }
+    } catch {
+      toast.error('Failed to fetch team members');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.companyId]);
+
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
 
   const activeMembers = members.filter((m) => m.status === 'active');
   const inactiveMembers = members.filter((m) => m.status === 'inactive');
@@ -153,7 +128,7 @@ export function CrmTeam() {
     totalLeads: members.reduce((acc, m) => acc + m.leadsManaged, 0),
   };
 
-  const handleInvite = () => {
+  const handleInvite = async () => {
     if (!form.name.trim()) {
       toast.error('Member name is required');
       return;
@@ -163,47 +138,67 @@ export function CrmTeam() {
       return;
     }
     setSaving(true);
-    setTimeout(() => {
-      const newMember: TeamMember = {
-        id: Date.now().toString(),
-        name: form.name.trim(),
-        email: form.email.trim(),
-        role: form.role,
-        phone: '-',
-        status: 'active',
-        tasksAssigned: 0,
-        leadsManaged: 0,
-        joinedAt: new Date().toISOString().split('T')[0],
-      };
-      setMembers((prev) => [newMember, ...prev]);
-      setForm(emptyForm);
-      setShowInviteDialog(false);
+    try {
+      const res = await fetch('/api/crm/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: user?.companyId,
+          name: form.name.trim(),
+          email: form.email.trim(),
+          password: form.password,
+          role: form.role,
+        }),
+      });
+      if (res.ok) {
+        setForm(emptyForm);
+        setShowInviteDialog(false);
+        toast.success('Team member created successfully');
+        fetchMembers();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to create team member');
+      }
+    } catch {
+      toast.error('Failed to create team member');
+    } finally {
       setSaving(false);
-      toast.success(`Invitation sent to ${newMember.email}`);
-    }, 400);
-  };
-
-  const handleToggleStatus = (memberId: string) => {
-    setMembers((prev) =>
-      prev.map((m) =>
-        m.id === memberId
-          ? { ...m, status: m.status === 'active' ? 'inactive' : 'active' }
-          : m
-      )
-    );
-    const member = members.find((m) => m.id === memberId);
-    if (member) {
-      toast.success(
-        `${member.name} is now ${member.status === 'active' ? 'inactive' : 'active'}`
-      );
     }
   };
 
-  const handleRemoveMember = (memberId: string) => {
+  const handleToggleStatus = async (memberId: string) => {
     const member = members.find((m) => m.id === memberId);
-    setMembers((prev) => prev.filter((m) => m.id !== memberId));
-    if (member) {
-      toast.success(`${member.name} has been removed from the team`);
+    if (!member) return;
+    const newStatus = member.status === 'active' ? 'inactive' : 'active';
+    try {
+      const res = await fetch('/api/crm/team', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: memberId, status: newStatus }),
+      });
+      if (res.ok) {
+        toast.success(`${member.name} is now ${newStatus}`);
+        fetchMembers();
+      } else {
+        toast.error('Failed to update member status');
+      }
+    } catch {
+      toast.error('Failed to update member status');
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    const member = members.find((m) => m.id === memberId);
+    try {
+      const res = await fetch(`/api/crm/team?id=${memberId}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success(`${member?.name} has been removed from the team`);
+        fetchMembers();
+      } else {
+        toast.error('Failed to remove team member');
+      }
+    } catch {
+      toast.error('Failed to remove team member');
     }
   };
 
@@ -227,6 +222,12 @@ export function CrmTeam() {
     ];
     const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
     return colors[index];
+  };
+
+  const formatJoinDate = (dateStr: string) => {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   if (loading) {
@@ -326,8 +327,9 @@ export function CrmTeam() {
       {members.length > 0 ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {members.map((member) => {
-            const roleConf = roleConfig[member.role];
+            const roleConf = roleConfig[member.role] || roleConfig.Agent;
             const RoleIcon = roleConf.icon;
+            const isActive = member.status === 'active';
 
             return (
               <Card key={member.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
@@ -353,12 +355,12 @@ export function CrmTeam() {
                         <Badge
                           variant="secondary"
                           className={`text-[10px] px-1.5 py-0 mt-0.5 ${
-                            member.status === 'active'
+                            isActive
                               ? 'bg-emerald-100 text-emerald-700'
                               : 'bg-gray-100 text-gray-500'
                           }`}
                         >
-                          {member.status === 'active' ? (
+                          {isActive ? (
                             <>
                               <CheckCircle2 className="h-3 w-3 mr-0.5" />
                               Active
@@ -407,7 +409,7 @@ export function CrmTeam() {
                       className="flex-1 h-8 text-xs"
                       onClick={() => handleToggleStatus(member.id)}
                     >
-                      {member.status === 'active' ? (
+                      {isActive ? (
                         <>
                           <XCircle className="h-3 w-3 mr-1" />
                           Deactivate
@@ -477,7 +479,7 @@ export function CrmTeam() {
               <Label>Role</Label>
               <Select
                 value={form.role}
-                onValueChange={(v) => setForm({ ...form, role: v as TeamRole })}
+                onValueChange={(v) => setForm({ ...form, role: v })}
               >
                 <SelectTrigger>
                   <SelectValue />

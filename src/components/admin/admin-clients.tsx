@@ -23,13 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Search, Plus, Eye, Trash2, Phone, Mail, Building2, Calendar } from 'lucide-react';
@@ -91,7 +85,6 @@ function TableSkeleton() {
 
 export function AdminClients() {
   const [clients, setClients] = useState<ClientCompany[]>([]);
-  const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [addOpen, setAddOpen] = useState(false);
@@ -106,7 +99,6 @@ export function AdminClients() {
     mobile: '',
     email: '',
     password: '',
-    planId: '',
     subscriptionStartDate: '',
     subscriptionExpiryDate: '',
   });
@@ -125,29 +117,13 @@ export function AdminClients() {
     }
   }, [search]);
 
-  const fetchPlans = async () => {
-    try {
-      const res = await fetch('/api/admin/plans');
-      if (res.ok) {
-        const json = await res.json();
-        setPlans(json.filter((p: Plan) => p.isActive));
-      }
-    } catch {
-      // plans fetch error is non-critical
-    }
-  };
-
-  useEffect(() => {
-    fetchPlans();
-  }, []);
-
   useEffect(() => {
     setLoading(true);
     fetchClients();
   }, [fetchClients]);
 
   const handleAddClient = async () => {
-    if (!form.name || !form.contactPerson || !form.mobile || !form.email || !form.password || !form.planId) {
+    if (!form.name || !form.contactPerson || !form.mobile || !form.email || !form.password) {
       toast.error('Please fill all required fields');
       return;
     }
@@ -170,7 +146,6 @@ export function AdminClients() {
         mobile: '',
         email: '',
         password: '',
-        planId: '',
         subscriptionStartDate: '',
         subscriptionExpiryDate: '',
       });
@@ -249,7 +224,6 @@ export function AdminClients() {
                   <TableHead className="font-semibold">Contact Person</TableHead>
                   <TableHead className="font-semibold hidden md:table-cell">Mobile</TableHead>
                   <TableHead className="font-semibold hidden lg:table-cell">Email</TableHead>
-                  <TableHead className="font-semibold">Plan</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold hidden xl:table-cell">Expiry</TableHead>
                   <TableHead className="font-semibold text-right">Actions</TableHead>
@@ -275,11 +249,6 @@ export function AdminClients() {
                       <TableCell className="text-neutral-600">{client.contactPerson}</TableCell>
                       <TableCell className="hidden md:table-cell text-neutral-500">{client.mobile}</TableCell>
                       <TableCell className="hidden lg:table-cell text-neutral-500">{client.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="bg-neutral-100 text-neutral-700">
-                          {client.plan.name}
-                        </Badge>
-                      </TableCell>
                       <TableCell>
                         <StatusBadge status={client.status} />
                       </TableCell>
@@ -377,21 +346,6 @@ export function AdminClients() {
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 placeholder="Initial password for client login"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="plan-select">Plan *</Label>
-              <Select value={form.planId} onValueChange={(val) => setForm({ ...form, planId: val })}>
-                <SelectTrigger id="plan-select">
-                  <SelectValue placeholder="Select a plan" />
-                </SelectTrigger>
-                <SelectContent>
-                  {plans.map((plan) => (
-                    <SelectItem key={plan.id} value={plan.id}>
-                      {plan.name} - ₹{plan.price.toLocaleString('en-IN')}/mo ({plan.userLimit} users, {plan.leadLimit} leads)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             <Separator />
             <div className="grid gap-4 sm:grid-cols-2">

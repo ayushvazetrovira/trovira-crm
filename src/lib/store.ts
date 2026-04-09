@@ -1,9 +1,8 @@
 import { create } from 'zustand';
 
 export type UserRole = 'admin' | 'client';
-export type PlanType = 'Starter' | 'Business' | 'Pro';
 export type AdminPage = 'dashboard' | 'clients' | 'subscriptions' | 'plans' | 'payments' | 'support' | 'settings';
-export type CrmPage = 'dashboard' | 'leads' | 'pipeline' | 'followups' | 'tasks' | 'team' | 'reports' | 'broadcast' | 'automation' | 'settings';
+export type CrmPage = 'dashboard' | 'leads' | 'pipeline' | 'followups' | 'tasks' | 'team' | 'reports' | 'broadcast' | 'automation' | 'email' | 'whatsapp' | 'api' | 'notes' | 'settings';
 
 export interface User {
   id: string;
@@ -12,7 +11,7 @@ export interface User {
   role: UserRole;
   companyId?: string;
   companyName?: string;
-  planName?: PlanType;
+  planName?: string;
   planId?: string;
   subscriptionExpiry?: string;
   subscriptionStatus?: string;
@@ -107,46 +106,3 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ notifications: [newNotification, ...get().notifications] });
   },
 }));
-
-// Plan feature flags
-export function getPlanFeatures(plan: PlanType | undefined) {
-  const features = {
-    Starter: {
-      pages: ['dashboard', 'leads', 'pipeline', 'followups', 'reports', 'settings'] as CrmPage[],
-      basicPipeline: true,
-      basicReports: true,
-      tasks: false,
-      team: false,
-      broadcast: false,
-      automation: false,
-      export: false,
-      email: false,
-      whatsapp: false,
-    },
-    Business: {
-      pages: ['dashboard', 'leads', 'pipeline', 'followups', 'tasks', 'team', 'reports', 'settings'] as CrmPage[],
-      basicPipeline: false,
-      basicReports: false,
-      tasks: true,
-      team: true,
-      broadcast: false,
-      automation: false,
-      export: true,
-      email: true,
-      whatsapp: true,
-    },
-    Pro: {
-      pages: ['dashboard', 'leads', 'pipeline', 'followups', 'tasks', 'team', 'reports', 'broadcast', 'automation', 'settings'] as CrmPage[],
-      basicPipeline: false,
-      basicReports: false,
-      tasks: true,
-      team: true,
-      broadcast: true,
-      automation: true,
-      export: true,
-      email: true,
-      whatsapp: true,
-    },
-  };
-  return features[plan || 'Starter'];
-}

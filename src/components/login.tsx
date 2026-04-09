@@ -108,28 +108,42 @@ export function LoginPage() {
             </Button>
             <div className="flex items-center gap-2 mb-3 mt-4">
               <Users className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">Client CRM</span>
+              <span className="text-sm font-medium">Client CRM — Trovira Plan</span>
             </div>
             <Button
               variant="outline"
               className="w-full justify-start text-sm"
               onClick={() => quickLogin('raj@abcschool.com', 'client123')}
             >
-              ABC School (Starter)
+              ABC School
             </Button>
             <Button
               variant="outline"
               className="w-full justify-start text-sm"
               onClick={() => quickLogin('amit@xyzrealty.com', 'client123')}
             >
-              XYZ Realty (Business)
+              XYZ Realty
             </Button>
             <Button
               variant="outline"
               className="w-full justify-start text-sm"
               onClick={() => quickLogin('neha@pqrtravel.com', 'client123')}
             >
-              PQR Travel (Pro)
+              PQR Travel
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start text-sm"
+              onClick={() => quickLogin('vikram@deftech.com', 'client123')}
+            >
+              DEF Technologies
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start text-sm"
+              onClick={() => quickLogin('anita@mnohealth.com', 'client123')}
+            >
+              MNO Healthcare
             </Button>
           </CardContent>
         </Card>

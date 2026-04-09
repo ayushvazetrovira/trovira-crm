@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +56,7 @@ interface Task {
   priority: TaskPriority;
   status: TaskStatus;
   createdAt: string;
+  updatedAt: string;
 }
 
 const priorityConfig: Record<TaskPriority, { label: string; color: string; icon: React.ElementType }> = {
@@ -70,89 +71,6 @@ const statusConfig: Record<TaskStatus, { label: string; color: string }> = {
   completed: { label: 'Completed', color: 'bg-emerald-100 text-emerald-700' },
 };
 
-const sampleTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Follow up with Priya Sharma',
-    description: 'Send pricing details and schedule a demo call for the school management software.',
-    assignedTo: 'Priya Sharma',
-    dueDate: '2025-02-15',
-    priority: 'high',
-    status: 'pending',
-    createdAt: '2025-02-01',
-  },
-  {
-    id: '2',
-    title: 'Prepare proposal for ABC Realty',
-    description: 'Create a detailed proposal document for the real estate CRM integration project.',
-    assignedTo: 'Rajesh Kumar',
-    dueDate: '2025-02-12',
-    priority: 'high',
-    status: 'in-progress',
-    createdAt: '2025-01-28',
-  },
-  {
-    id: '3',
-    title: 'Update lead source tracking',
-    description: 'Review and update the lead source tracking in settings for better attribution.',
-    assignedTo: 'Neha Patel',
-    dueDate: '2025-02-20',
-    priority: 'medium',
-    status: 'pending',
-    createdAt: '2025-02-05',
-  },
-  {
-    id: '4',
-    title: 'Send welcome email to new leads',
-    description: 'Send personalized welcome emails to the 12 new leads captured this week.',
-    assignedTo: 'Amit Singh',
-    dueDate: '2025-02-10',
-    priority: 'medium',
-    status: 'completed',
-    createdAt: '2025-01-25',
-  },
-  {
-    id: '5',
-    title: 'Organize team training session',
-    description: 'Schedule and prepare materials for the CRM onboarding training for new team members.',
-    assignedTo: 'Sneha Gupta',
-    dueDate: '2025-02-18',
-    priority: 'low',
-    status: 'pending',
-    createdAt: '2025-02-03',
-  },
-  {
-    id: '6',
-    title: 'Review quarterly pipeline report',
-    description: 'Analyze the Q4 pipeline conversion rates and prepare insights for the team meeting.',
-    assignedTo: 'Rajesh Kumar',
-    dueDate: '2025-02-08',
-    priority: 'high',
-    status: 'completed',
-    createdAt: '2025-01-20',
-  },
-  {
-    id: '7',
-    title: 'Fix WhatsApp template issues',
-    description: 'Review and fix rejected WhatsApp message templates for broadcast campaigns.',
-    assignedTo: 'Amit Singh',
-    dueDate: '2025-02-14',
-    priority: 'medium',
-    status: 'in-progress',
-    createdAt: '2025-02-02',
-  },
-  {
-    id: '8',
-    title: 'Onboard client PQR Travels',
-    description: 'Complete the onboarding process for PQR Travels including data migration.',
-    assignedTo: 'Neha Patel',
-    dueDate: '2025-02-22',
-    priority: 'low',
-    status: 'pending',
-    createdAt: '2025-02-06',
-  },
-];
-
 const emptyForm = {
   title: '',
   description: '',
@@ -164,16 +82,38 @@ const emptyForm = {
 
 export function CrmTasks() {
   const { user } = useAppStore();
-  const [tasks, setTasks] = useState<Task[]>(sampleTasks);
-  const [loading, setLoading] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
-  const filteredTasks = statusFilter === 'all'
-    ? tasks
-    : tasks.filter((t) => t.status === statusFilter);
+  const fetchTasks = useCallback(async () => {
+    if (!user?.companyId) return;
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        companyId: user.companyId,
+        status: statusFilter,
+      });
+      const res = await fetch(`/api/crm/tasks?${params}`);
+      if (!res.ok) throw new Error('Failed to fetch tasks');
+      const data = await res.json();
+      setTasks(data.tasks || []);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      toast.error('Failed to load tasks');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.companyId, statusFilter]);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  const filteredTasks = tasks;
 
   const stats = {
     total: tasks.length,
@@ -182,7 +122,7 @@ export function CrmTasks() {
     completed: tasks.filter((t) => t.status === 'completed').length,
   };
 
-  const handleAddTask = () => {
+  const handleAddTask = async () => {
     if (!form.title.trim()) {
       toast.error('Task title is required');
       return;
@@ -196,39 +136,76 @@ export function CrmTasks() {
       return;
     }
     setSaving(true);
-    setTimeout(() => {
-      const newTask: Task = {
-        id: Date.now().toString(),
-        title: form.title.trim(),
-        description: form.description.trim(),
-        assignedTo: form.assignedTo.trim(),
-        dueDate: form.dueDate,
-        priority: form.priority,
-        status: form.status,
-        createdAt: new Date().toISOString().split('T')[0],
-      };
-      setTasks((prev) => [newTask, ...prev]);
+    try {
+      const res = await fetch('/api/crm/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: user?.companyId,
+          title: form.title.trim(),
+          description: form.description.trim(),
+          assignedTo: form.assignedTo.trim(),
+          dueDate: form.dueDate,
+          priority: form.priority,
+          status: form.status,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to create task');
+      }
       setForm(emptyForm);
       setShowAddDialog(false);
-      setSaving(false);
       toast.success('Task created successfully');
-    }, 400);
+      fetchTasks();
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create task');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleStatusChange = (taskId: string, newStatus: TaskStatus) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
-    );
-    toast.success(`Task marked as ${statusConfig[newStatus].label}`);
+  const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+    try {
+      const res = await fetch('/api/crm/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: taskId, status: newStatus }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update task');
+      }
+      toast.success(`Task marked as ${statusConfig[newStatus].label}`);
+      fetchTasks();
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update task');
+    }
   };
 
-  const handleDeleteTask = (taskId: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
-    toast.success('Task deleted successfully');
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      const res = await fetch(`/api/crm/tasks?id=${taskId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete task');
+      }
+      toast.success('Task deleted successfully');
+      fetchTasks();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete task');
+    }
   };
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return '—';
     const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
@@ -359,7 +336,7 @@ export function CrmTasks() {
                     const priority = priorityConfig[task.priority];
                     const status = statusConfig[task.status];
                     const PriorityIcon = priority.icon;
-                    const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'completed';
+                    const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
 
                     return (
                       <TableRow key={task.id} className={task.status === 'completed' ? 'opacity-60' : ''}>
@@ -376,9 +353,9 @@ export function CrmTasks() {
                         <TableCell className="hidden md:table-cell">
                           <div className="flex items-center gap-2">
                             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-50 text-teal-700 text-xs font-semibold flex-shrink-0">
-                              {task.assignedTo.charAt(0)}
+                              {task.assignedTo ? task.assignedTo.charAt(0).toUpperCase() : '?'}
                             </div>
-                            <span className="text-sm text-gray-700">{task.assignedTo}</span>
+                            <span className="text-sm text-gray-700">{task.assignedTo || '—'}</span>
                           </div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">

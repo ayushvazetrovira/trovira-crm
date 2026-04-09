@@ -40,6 +40,13 @@ model Company {
   users         User[]
   tickets       SupportTicket[]
   settings      CrmSetting[]
+  notes         Note[]
+  tasks         CrmTask[]
+  broadcasts    Broadcast[]
+  automationRules AutomationRule[]
+  emails        CrmEmail[]
+  whatsappContacts WhatsAppContact[]
+  webhooks      Webhook[]
 }
 
 model Plan {
@@ -105,6 +112,7 @@ model Lead {
   notesList     LeadNote[]
   stageHistory  LeadStageHistory[]
   followups     Followup[]
+  companyNotes  Note[]
 }
 
 model LeadNote {
@@ -164,6 +172,131 @@ model ActivityLog {
   createdAt     DateTime  @default(now())
 
   user          User      @relation(fields: [userId], references: [id])
+}
+
+model Note {
+  id            String    @id @default(cuid())
+  companyId     String
+  title         String
+  content       String
+  color         String    @default("white") // white, yellow, green, blue, pink, purple
+  isPinned      Boolean   @default(false)
+  tags          String?
+  leadId        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company       Company   @relation(fields: [companyId], references: [id])
+  lead          Lead?     @relation(fields: [leadId], references: [id])
+}
+
+model CrmTask {
+  id            String    @id @default(cuid())
+  companyId     String
+  title         String
+  description   String    @default("")
+  assignedTo    String    @default("")
+  dueDate       String    @default("")
+  priority      String    @default("medium") // high, medium, low
+  status        String    @default("pending") // pending, in-progress, completed
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company       Company   @relation(fields: [companyId], references: [id])
+}
+
+model Broadcast {
+  id            String    @id @default(cuid())
+  companyId     String
+  name          String
+  message       String
+  recipients    Int       @default(0)
+  status        String    @default("draft") // draft, sent, delivered, queued, failed
+  delivered      Int       @default(0)
+  readCount     Int       @default(0)
+  failed        Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company       Company   @relation(fields: [companyId], references: [id])
+}
+
+model AutomationRule {
+  id            String    @id @default(cuid())
+  companyId     String
+  name          String
+  trigger       String    @default("new_lead_created")
+  action        String    @default("send_whatsapp")
+  description   String    @default("")
+  status        String    @default("active") // active, paused
+  executions    Int       @default(0)
+  lastRun       DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company       Company   @relation(fields: [companyId], references: [id])
+}
+
+model CrmEmail {
+  id            String    @id @default(cuid())
+  companyId     String
+  fromName      String    @default("")
+  fromEmail     String    @default("")
+  toEmail       String    @default("")
+  subject       String    @default("")
+  preview       String    @default("")
+  body          String    @default("")
+  isRead        Boolean   @default(false)
+  isStarred     Boolean   @default(false)
+  hasAttachment  Boolean   @default(false)
+  folder        String    @default("inbox") // inbox, sent, draft, archive
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company       Company   @relation(fields: [companyId], references: [id])
+}
+
+model WhatsAppContact {
+  id            String    @id @default(cuid())
+  companyId     String
+  name          String
+  phone         String
+  lastMessage   String    @default("")
+ lastTime      String    @default("")
+  unread        Int       @default(0)
+  isOnline      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company       Company   @relation(fields: [companyId], references: [id])
+  messages      WhatsAppMessage[]
+}
+
+model WhatsAppMessage {
+  id            String    @id @default(cuid())
+  contactId     String
+  content       String    @default("")
+  direction     String    @default("incoming") // incoming, outgoing
+  isRead        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  contact       WhatsAppContact @relation(fields: [contactId], references: [id])
+}
+
+model Webhook {
+  id            String    @id @default(cuid())
+  companyId     String
+  name          String
+  url           String
+  events        String    @default("")
+  status        String    @default("active") // active, paused
+  lastTriggered  DateTime?
+  successCount  Int       @default(0)
+  failCount     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company       Company   @relation(fields: [companyId], references: [id])
 }
 
 model CrmSetting {

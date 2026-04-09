@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAppStore, CrmPage, getPlanFeatures } from '@/lib/store';
+import { useAppStore, CrmPage } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -19,7 +19,6 @@ import {
   Menu,
   LogOut,
   Bell,
-  Search,
   ChevronRight,
   ListTodo,
   UserCog,
@@ -30,7 +29,10 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
-  Lock,
+  Mail,
+  MessageCircle,
+  Plug,
+  StickyNote,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CrmDashboard } from './crm-dashboard';
@@ -42,18 +44,26 @@ import { CrmTeam } from './crm-team';
 import { CrmReports } from './crm-reports';
 import { CrmBroadcast } from './crm-broadcast';
 import { CrmAutomation } from './crm-automation';
+import { CrmEmail } from './crm-email';
+import { CrmWhatsapp } from './crm-whatsapp';
+import { CrmApi } from './crm-api';
 import { CrmSettings } from './crm-settings';
+import { CrmNotes } from './crm-notes';
 
-const allNavItems: { icon: React.ElementType; label: string; page: CrmPage; requiredPlan?: string }[] = [
+const navItems: { icon: React.ElementType; label: string; page: CrmPage; section?: string }[] = [
   { icon: LayoutDashboard, label: 'Dashboard', page: 'dashboard' },
   { icon: Users, label: 'Leads', page: 'leads' },
   { icon: Kanban, label: 'Pipeline', page: 'pipeline' },
   { icon: Clock, label: 'Follow-ups', page: 'followups' },
-  { icon: ListTodo, label: 'Tasks', page: 'tasks', requiredPlan: 'Business' },
-  { icon: UserCog, label: 'Team', page: 'team', requiredPlan: 'Business' },
+  { icon: ListTodo, label: 'Tasks', page: 'tasks' },
+  { icon: UserCog, label: 'Team', page: 'team' },
   { icon: BarChart3, label: 'Reports', page: 'reports' },
-  { icon: Megaphone, label: 'Broadcast', page: 'broadcast', requiredPlan: 'Pro' },
-  { icon: Bot, label: 'Automation', page: 'automation', requiredPlan: 'Pro' },
+  { icon: Megaphone, label: 'Broadcast', page: 'broadcast' },
+  { icon: Bot, label: 'Automation', page: 'automation' },
+  { icon: Mail, label: 'Email', page: 'email', section: 'integrations' },
+  { icon: MessageCircle, label: 'WhatsApp Inbox', page: 'whatsapp', section: 'integrations' },
+  { icon: Plug, label: 'API / Integrations', page: 'api', section: 'integrations' },
+  { icon: StickyNote, label: 'Notes', page: 'notes' },
   { icon: Settings, label: 'Settings', page: 'settings' },
 ];
 
@@ -134,17 +144,15 @@ function SidebarContent({
   crmPage,
   setCrmPage,
   companyName,
-  planName,
   onAddLead,
 }: {
   crmPage: CrmPage;
   setCrmPage: (page: CrmPage) => void;
   companyName: string;
-  planName: string;
   onAddLead: () => void;
 }) {
-  const features = getPlanFeatures(planName as any);
-  const visibleItems = allNavItems.filter(item => !item.requiredPlan || features.pages.includes(item.page));
+  const mainItems = navItems.filter(i => !i.section);
+  const integrationItems = navItems.filter(i => i.section === 'integrations');
 
   return (
     <div className="flex h-full flex-col">
@@ -152,30 +160,40 @@ function SidebarContent({
         <h1 className="text-xl font-bold text-white tracking-tight">Trovira</h1>
         <p className="text-teal-100 text-sm mt-1 truncate">{companyName}</p>
         <Badge className="mt-2 bg-white/20 text-white border-0 text-xs">
-          {planName} Plan
+          Trovira Plan
         </Badge>
       </div>
 
-      <ScrollArea className="flex-1 px-3 py-4">
+      <div className="flex-1 overflow-y-auto min-h-0 px-3 py-4 sidebar-scroll">
         <nav className="flex flex-col gap-1">
-          {allNavItems.map((item) => {
-            const isAccessible = !item.requiredPlan || features.pages.includes(item.page);
+          {mainItems.map((item) => {
             const isActive = crmPage === item.page;
             const Icon = item.icon;
 
-            if (!isAccessible) {
-              return (
-                <div
-                  key={item.page}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-300 cursor-not-allowed opacity-50"
-                  title={`Upgrade to ${item.requiredPlan} plan to access ${item.label}`}
-                >
-                  <Icon className="h-[18px] w-[18px]" />
-                  <span className="flex-1 text-left">{item.label}</span>
-                  <Lock className="h-3 w-3" />
-                </div>
-              );
-            }
+            return (
+              <button
+                key={item.page}
+                onClick={() => setCrmPage(item.page)}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                  isActive
+                    ? 'bg-teal-50 text-teal-700 shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}
+              >
+                <Icon className={`h-[18px] w-[18px] ${isActive ? 'text-teal-600' : ''}`} />
+                <span className="flex-1 text-left">{item.label}</span>
+                {isActive && <ChevronRight className="h-4 w-4 text-teal-500" />}
+              </button>
+            );
+          })}
+
+          {/* Integrations Section */}
+          <div className="pt-4 pb-2">
+            <p className="px-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Integrations</p>
+          </div>
+          {integrationItems.map((item) => {
+            const isActive = crmPage === item.page;
+            const Icon = item.icon;
 
             return (
               <button
@@ -194,7 +212,7 @@ function SidebarContent({
             );
           })}
         </nav>
-      </ScrollArea>
+      </div>
 
       <div className="p-3 border-t">
         <button
@@ -215,8 +233,6 @@ export function CrmPanel() {
   const [addLeadTrigger, setAddLeadTrigger] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
-  const planName = user?.planName || 'Starter';
-  const features = getPlanFeatures(planName as any);
 
   if (!user) return null;
 
@@ -234,19 +250,27 @@ export function CrmPanel() {
       case 'leads':
         return <CrmLeads openAddDialog={addLeadTrigger} />;
       case 'pipeline':
-        return <CrmPipeline isBasic={features.basicPipeline} />;
+        return <CrmPipeline />;
       case 'followups':
         return <CrmFollowups />;
       case 'tasks':
-        return features.tasks ? <CrmTasks /> : <CrmDashboard />;
+        return <CrmTasks />;
       case 'team':
-        return features.team ? <CrmTeam /> : <CrmDashboard />;
+        return <CrmTeam />;
       case 'reports':
-        return <CrmReports isBasic={features.basicReports} />;
+        return <CrmReports />;
       case 'broadcast':
-        return features.broadcast ? <CrmBroadcast /> : <CrmDashboard />;
+        return <CrmBroadcast />;
       case 'automation':
-        return features.automation ? <CrmAutomation /> : <CrmDashboard />;
+        return <CrmAutomation />;
+      case 'email':
+        return <CrmEmail />;
+      case 'whatsapp':
+        return <CrmWhatsapp />;
+      case 'api':
+        return <CrmApi />;
+      case 'notes':
+        return <CrmNotes />;
       case 'settings':
         return <CrmSettings />;
       default:
@@ -254,7 +278,7 @@ export function CrmPanel() {
     }
   };
 
-  const currentPageLabel = allNavItems.find(n => n.page === crmPage)?.label || 'Dashboard';
+  const currentPageLabel = navItems.find(n => n.page === crmPage)?.label || 'Dashboard';
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -264,7 +288,6 @@ export function CrmPanel() {
           crmPage={crmPage}
           setCrmPage={(page) => setCrmPage(page)}
           companyName={user.companyName || 'My Company'}
-          planName={planName}
           onAddLead={handleAddLead}
         />
       </aside>
@@ -279,7 +302,7 @@ export function CrmPanel() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-0">
+            <SheetContent side="left" className="w-64 p-0 overflow-hidden [&>div]:h-full">
               <SheetHeader className="sr-only">
                 <SheetTitle>Navigation</SheetTitle>
               </SheetHeader>
@@ -290,7 +313,6 @@ export function CrmPanel() {
                   setSidebarOpen(false);
                 }}
                 companyName={user.companyName || 'My Company'}
-                planName={planName}
                 onAddLead={handleAddLead}
               />
             </SheetContent>
@@ -302,7 +324,7 @@ export function CrmPanel() {
               <div className="flex items-center gap-2">
                 <p className="text-xs text-gray-500">{user.companyName}</p>
                 <Badge variant="secondary" className="bg-teal-100 text-teal-700 text-[10px] px-1.5 py-0">
-                  {planName}
+                  Trovira Plan
                 </Badge>
               </div>
             </div>

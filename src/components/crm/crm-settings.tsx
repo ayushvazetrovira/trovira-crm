@@ -22,12 +22,16 @@ import {
   Shield,
   Crown,
   CheckCircle2,
-  XCircle,
   Users,
   Target,
   Zap,
   Megaphone,
   Bot,
+  BarChart3,
+  Kanban,
+  ListTodo,
+  UserCog,
+  Clock,
 } from 'lucide-react';
 
 interface Settings {
@@ -291,13 +295,8 @@ export function CrmSettings() {
                   <Crown className="h-6 w-6 text-teal-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900">{user?.planName || 'Free Plan'}</p>
-                  <p className="text-sm text-gray-500">
-                    {user?.planName === 'Starter' && 'Best for single user small business'}
-                    {user?.planName === 'Business' && 'Best for growing teams'}
-                    {user?.planName === 'Pro' && 'Best for companies and larger teams'}
-                    {!user?.planName && 'Basic CRM features'}
-                  </p>
+                  <p className="font-semibold text-gray-900">Trovira Plan</p>
+                  <p className="text-sm text-gray-500">Complete CRM with all features included</p>
                 </div>
               </div>
               <Badge
@@ -313,32 +312,26 @@ export function CrmSettings() {
             </div>
             <Separator className="my-4" />
 
-            {/* Plan Features */}
-            <div className="space-y-2 mb-4">
-              {(user?.planName === 'Starter' ? [
-                { icon: Users, label: 'Dashboard, Leads, Basic Pipeline' },
-                { icon: Clock, label: 'Follow-ups, Notes' },
-                { icon: Target, label: 'Basic Reports' },
-                { icon: CheckCircle2, label: '1 User, 500 Lead Limit' },
-              ] : user?.planName === 'Business' ? [
-                { icon: Users, label: 'Everything in Starter + Tasks, Team' },
-                { icon: Mail, label: 'Email & WhatsApp Inbox' },
-                { icon: Target, label: 'Advanced Pipeline & Reports' },
-                { icon: CheckCircle2, label: '5 Users, 5,000 Lead Limit' },
-              ] : user?.planName === 'Pro' ? [
-                { icon: Users, label: 'Everything in Business + Full Control' },
+            {/* All Features */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+              {[
+                { icon: Users, label: 'Lead Management (Add, Edit, Delete)' },
+                { icon: Kanban, label: 'Advanced Pipeline (Custom Stages)' },
+                { icon: Clock, label: 'Follow-up Reminders & Scheduling' },
+                { icon: ListTodo, label: 'Task Management' },
+                { icon: UserCog, label: 'Team Management (Up to 15 Users)' },
+                { icon: Mail, label: 'Send & Receive Email' },
+                { icon: MessageCircle, label: 'WhatsApp Inbox & Broadcast' },
+                { icon: Target, label: 'Export Lead Data' },
+                { icon: BarChart3, label: 'Advanced Reports & Analytics' },
                 { icon: Zap, label: 'Workflow Automation' },
-                { icon: Megaphone, label: 'WhatsApp Broadcast' },
-                { icon: Bot, label: 'API, Custom Fields, Branding' },
-                { icon: CheckCircle2, label: '15 Users, Unlimited Leads' },
-              ] : [
-                { icon: Users, label: 'Dashboard & Leads' },
-                { icon: CheckCircle2, label: 'Basic Features' },
-              ]).map((item, idx) => {
+                { icon: Bot, label: 'API / Integrations' },
+                { icon: CheckCircle2, label: 'Unlimited Leads' },
+              ].map((item, idx) => {
                 const Icon = item.icon;
                 return (
                   <div key={idx} className="flex items-center gap-2 text-sm text-gray-700">
-                    <Icon className="h-4 w-4 text-teal-600" />
+                    <Icon className="h-4 w-4 text-teal-600 flex-shrink-0" />
                     <span>{item.label}</span>
                   </div>
                 );
@@ -348,7 +341,11 @@ export function CrmSettings() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
               <div>
                 <p className="text-gray-500">Plan</p>
-                <p className="font-medium">{user?.planName || 'Free'}</p>
+                <p className="font-medium">Trovira Plan</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Price</p>
+                <p className="font-medium">₹2,999/month</p>
               </div>
               {user?.subscriptionExpiry && (
                 <div>
@@ -362,20 +359,15 @@ export function CrmSettings() {
                   {user?.subscriptionStatus === 'active' ? 'Active' : user?.subscriptionStatus === 'expired' ? 'Expired' : 'Active'}
                 </p>
               </div>
-            </div>
-
-            {/* Upgrade prompt for Starter users */}
-            {user?.planName === 'Starter' && (
-              <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-100">
-                <div className="flex items-start gap-2">
-                  <Zap className="h-4 w-4 text-amber-600 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-amber-800">Upgrade for more features</p>
-                    <p className="text-xs text-amber-600 mt-0.5">Get Tasks, Team, Email, WhatsApp, and more with Business or Pro plan.</p>
-                  </div>
-                </div>
+              <div>
+                <p className="text-gray-500">Users</p>
+                <p className="font-medium">Up to 15</p>
               </div>
-            )}
+              <div>
+                <p className="text-gray-500">Leads</p>
+                <p className="font-medium">Unlimited</p>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

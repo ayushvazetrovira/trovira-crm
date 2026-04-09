@@ -49,23 +49,23 @@ export async function POST(request: NextRequest) {
       mobile,
       email,
       password,
-      planId,
       subscriptionStartDate,
       subscriptionExpiryDate,
     } = body;
 
-    if (!name || !contactPerson || !mobile || !email || !password || !planId) {
+    if (!name || !contactPerson || !mobile || !email || !password) {
       return NextResponse.json(
-        { error: 'Missing required fields: name, contactPerson, mobile, email, password, planId' },
+        { error: 'Missing required fields: name, contactPerson, mobile, email, password' },
         { status: 400 }
       );
     }
 
-    // Verify plan exists
-    const plan = await db.plan.findUnique({ where: { id: planId } });
+    // Auto-assign Trovira Plan
+    const plan = await db.plan.findFirst({ where: { isActive: true } });
     if (!plan) {
-      return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
+      return NextResponse.json({ error: 'No active plan found' }, { status: 404 });
     }
+    const activePlanId = plan.id;
 
     // Create company, user, subscription, and payment in a transaction
     const result = await db.$transaction(async (tx) => {
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
           contactPerson,
           mobile,
           email,
-          planId,
+          planId: activePlanId,
         },
       });
 
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       const subscription = await tx.subscription.create({
         data: {
           companyId: company.id,
-          planId,
+          planId: activePlanId,
           startDate,
           expiryDate,
           status: 'active',
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       const payment = await tx.payment.create({
         data: {
           companyId: company.id,
-          planId,
+          planId: activePlanId,
           amount: plan.price,
           method: 'UPI',
           status: 'paid',

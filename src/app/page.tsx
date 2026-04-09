@@ -1,6 +1,6 @@
 'use client';
 
-import { useAppStore, AdminPage, CrmPage } from '@/lib/store';
+import { useAppStore } from '@/lib/store';
 import { LoginPage } from '@/components/login';
 import { AdminPanel } from '@/components/admin/admin-panel';
 import { CrmPanel } from '@/components/crm/crm-panel';

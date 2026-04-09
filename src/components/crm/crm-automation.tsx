@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -70,10 +70,10 @@ type AutomationAction =
 interface AutomationRule {
   id: string;
   name: string;
-  trigger: AutomationTrigger;
-  action: AutomationAction;
+  trigger: string;
+  action: string;
   description: string;
-  status: AutomationStatus;
+  status: string;
   executions: number;
   lastRun: string | null;
   createdAt: string;
@@ -95,101 +95,21 @@ const actionOptions: { value: AutomationAction; label: string; icon: React.Eleme
   { value: 'add_note', label: 'Add a note to lead', icon: Edit2 },
 ];
 
-function getTriggerLabel(value: AutomationTrigger): string {
+function getTriggerLabel(value: string): string {
   return triggerOptions.find((t) => t.value === value)?.label || value;
 }
 
-function getTriggerIcon(value: AutomationTrigger): React.ElementType {
+function getTriggerIcon(value: string): React.ElementType {
   return triggerOptions.find((t) => t.value === value)?.icon || Settings;
 }
 
-function getActionLabel(value: AutomationAction): string {
+function getActionLabel(value: string): string {
   return actionOptions.find((a) => a.value === value)?.label || value;
 }
 
-function getActionIcon(value: AutomationAction): React.ElementType {
+function getActionIcon(value: string): React.ElementType {
   return actionOptions.find((a) => a.value === value)?.icon || Zap;
 }
-
-const sampleRules: AutomationRule[] = [
-  {
-    id: '1',
-    name: 'Welcome New Leads',
-    trigger: 'new_lead_created',
-    action: 'send_whatsapp',
-    description: 'Automatically send a welcome message via WhatsApp when a new lead is captured.',
-    status: 'active',
-    executions: 87,
-    lastRun: '2025-02-10T14:30:00',
-    createdAt: '2024-06-15',
-  },
-  {
-    id: '2',
-    name: 'Follow-up Overdue Alert',
-    trigger: 'followup_overdue',
-    action: 'create_task',
-    description: 'Create a high-priority task when a follow-up becomes overdue.',
-    status: 'active',
-    executions: 34,
-    lastRun: '2025-02-09T09:00:00',
-    createdAt: '2024-07-20',
-  },
-  {
-    id: '3',
-    name: 'Won Lead Notification',
-    trigger: 'lead_status_change',
-    action: 'send_email',
-    description: 'Send a congratulatory email to the team when a lead status changes to Won.',
-    status: 'active',
-    executions: 23,
-    lastRun: '2025-02-08T16:45:00',
-    createdAt: '2024-08-01',
-  },
-  {
-    id: '4',
-    name: 'Auto-assign New Leads',
-    trigger: 'new_lead_created',
-    action: 'assign_lead',
-    description: 'Automatically assign new leads to the team member with the fewest active leads.',
-    status: 'paused',
-    executions: 56,
-    lastRun: '2025-01-28T11:20:00',
-    createdAt: '2024-09-10',
-  },
-  {
-    id: '5',
-    name: 'Lost Lead Follow-up',
-    trigger: 'lead_status_change',
-    action: 'add_note',
-    description: 'Add a note to leads that change to Lost status with reasons for review.',
-    status: 'active',
-    executions: 12,
-    lastRun: '2025-02-07T10:15:00',
-    createdAt: '2024-10-05',
-  },
-  {
-    id: '6',
-    name: 'Interested Lead Email',
-    trigger: 'lead_status_change',
-    action: 'send_email',
-    description: 'Send a detailed product brochure email when a lead status changes to Interested.',
-    status: 'paused',
-    executions: 18,
-    lastRun: '2025-01-25T13:30:00',
-    createdAt: '2024-11-12',
-  },
-  {
-    id: '7',
-    name: 'Task Completion Log',
-    trigger: 'task_completed',
-    action: 'add_note',
-    description: 'Automatically add a completion note to the related lead when a task is marked complete.',
-    status: 'active',
-    executions: 45,
-    lastRun: '2025-02-10T15:00:00',
-    createdAt: '2024-12-01',
-  },
-];
 
 const emptyForm = {
   name: '',
@@ -200,12 +120,32 @@ const emptyForm = {
 
 export function CrmAutomation() {
   const { user } = useAppStore();
-  const [rules, setRules] = useState<AutomationRule[]>(sampleRules);
-  const [loading, setLoading] = useState(false);
+  const [rules, setRules] = useState<AutomationRule[]>([]);
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+
+  const fetchRules = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/crm/automation?companyId=${user?.companyId}&status=${statusFilter}`);
+      if (res.ok) {
+        const data = await res.json();
+        setRules(data.rules || []);
+      } else {
+        toast.error('Failed to fetch automation rules');
+      }
+    } catch {
+      toast.error('Failed to fetch automation rules');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.companyId, statusFilter]);
+
+  useEffect(() => {
+    fetchRules();
+  }, [fetchRules]);
 
   const filteredRules =
     statusFilter === 'all' ? rules : rules.filter((r) => r.status === statusFilter);
@@ -221,59 +161,73 @@ export function CrmAutomation() {
     { label: 'Total Executions', value: totalExecutions, icon: Zap, color: 'text-sky-600', bg: 'bg-sky-50' },
   ];
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!form.name.trim()) {
       toast.error('Rule name is required');
       return;
     }
     setSaving(true);
-    setTimeout(() => {
-      const newRule: AutomationRule = {
-        id: Date.now().toString(),
-        name: form.name.trim(),
-        trigger: form.trigger,
-        action: form.action,
-        description: form.description.trim(),
-        status: 'active',
-        executions: 0,
-        lastRun: null,
-        createdAt: new Date().toISOString().split('T')[0],
-      };
-      setRules((prev) => [newRule, ...prev]);
-      setForm(emptyForm);
-      setShowCreateDialog(false);
+    try {
+      const res = await fetch('/api/crm/automation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: user?.companyId,
+          name: form.name.trim(),
+          trigger: form.trigger,
+          action: form.action,
+          description: form.description.trim(),
+        }),
+      });
+      if (res.ok) {
+        setForm(emptyForm);
+        setShowCreateDialog(false);
+        toast.success('Automation rule created successfully');
+        fetchRules();
+      } else {
+        toast.error('Failed to create automation rule');
+      }
+    } catch {
+      toast.error('Failed to create automation rule');
+    } finally {
       setSaving(false);
-      toast.success('Automation rule created successfully');
-    }, 400);
-  };
-
-  const handleToggleStatus = (ruleId: string) => {
-    setRules((prev) =>
-      prev.map((r) =>
-        r.id === ruleId
-          ? { ...r, status: r.status === 'active' ? ('paused' as AutomationStatus) : ('active' as AutomationStatus) }
-          : r
-      )
-    );
-    const rule = rules.find((r) => r.id === ruleId);
-    if (rule) {
-      toast.success(
-        `Rule "${rule.name}" is now ${rule.status === 'active' ? 'paused' : 'active'}`
-      );
     }
   };
 
-  const handleDelete = (ruleId: string) => {
+  const handleToggleStatus = async (ruleId: string) => {
     const rule = rules.find((r) => r.id === ruleId);
-    setRules((prev) => prev.filter((r) => r.id !== ruleId));
-    if (rule) {
-      toast.success(`Rule "${rule.name}" deleted successfully`);
+    if (!rule) return;
+    const newStatus = rule.status === 'active' ? 'paused' : 'active';
+    try {
+      const res = await fetch('/api/crm/automation', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: ruleId, status: newStatus }),
+      });
+      if (res.ok) {
+        toast.success(`Rule "${rule.name}" is now ${newStatus}`);
+        fetchRules();
+      } else {
+        toast.error('Failed to update rule status');
+      }
+    } catch {
+      toast.error('Failed to update rule status');
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const handleDelete = async (ruleId: string) => {
+    const rule = rules.find((r) => r.id === ruleId);
+    try {
+      const res = await fetch(`/api/crm/automation?id=${ruleId}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success(`Rule "${rule?.name}" deleted successfully`);
+        fetchRules();
+      } else {
+        toast.error('Failed to delete rule');
+      }
+    } catch {
+      toast.error('Failed to delete rule');
+    }
   };
 
   const formatDateTime = (dateStr: string | null) => {
