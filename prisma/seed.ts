@@ -741,6 +741,108 @@ async function seed() {
     }
   }
 
+  // Seed CrmTasks for each company
+  const tasksData: { companyId: string; title: string; description: string; assignedTo: string; dueDate: string; priority: string; status: string }[] = [
+    // ABC School (Education)
+    { companyId: company1.id, title: 'Follow up with Priya Sharma', description: 'Call Priya to discuss admission process and share fee structure. She showed interest in the Python batch.', assignedTo: 'Raj Sharma', dueDate: '2025-02-15', priority: 'high', status: 'pending' },
+    { companyId: company1.id, title: 'Prepare training material for corporate batch', description: 'Create slides and hands-on exercises for the data analytics corporate training starting August 10th.', assignedTo: 'Raj Sharma', dueDate: '2025-02-20', priority: 'high', status: 'in-progress' },
+    { companyId: company1.id, title: 'Call parents for upcoming Parent-Teacher Meet', description: 'Confirm attendance for Saturday PTM. Contact list has 42 parents — aim for 80% confirmation rate.', assignedTo: 'Raj Sharma', dueDate: '2025-02-12', priority: 'medium', status: 'completed' },
+    { companyId: company1.id, title: 'Update course curriculum for 2025-26', description: 'Review and update syllabus for Python, Data Science, and Web Development courses based on industry trends.', assignedTo: 'Raj Sharma', dueDate: '2025-03-01', priority: 'medium', status: 'pending' },
+    { companyId: company1.id, title: 'Send admission open broadcast', description: 'Finalize and send WhatsApp broadcast for 2025-26 admissions. Coordinate with marketing team.', assignedTo: 'Raj Sharma', dueDate: '2025-02-18', priority: 'low', status: 'in-progress' },
+    { companyId: company1.id, title: 'Collect corporate training feedback', description: 'Send feedback forms to previous corporate training clients. Compile responses for improvement report.', assignedTo: 'Raj Sharma', dueDate: '2025-02-25', priority: 'low', status: 'pending' },
+
+    // XYZ Realty (Real Estate)
+    { companyId: company2.id, title: 'Schedule site visit for Sunita Mehta', description: 'Arrange site visit for 3BHK in Andheri West. Coordinate with property manager for access and keys.', assignedTo: 'Amit Patel', dueDate: '2025-02-13', priority: 'high', status: 'pending' },
+    { companyId: company2.id, title: 'Collect KYC documents from Rajesh Kapoor', description: 'Follow up on KYC documents (PAN, Aadhaar, passport photo) for commercial property investment in BKC.', assignedTo: 'Amit Patel', dueDate: '2025-02-16', priority: 'high', status: 'in-progress' },
+    { companyId: company2.id, title: 'Arrange property photography — Bandra listings', description: 'Coordinate with photographer for 5 premium property listings. Need drone shots for 2 properties.', assignedTo: 'Amit Patel', dueDate: '2025-02-20', priority: 'medium', status: 'pending' },
+    { companyId: company2.id, title: 'Review joint venture proposal from Neeta Deshmukh', description: 'Analyze the 2-acre land parcel JV proposal in Thane (Ghodbunder Road). Prepare initial feasibility report.', assignedTo: 'Amit Patel', dueDate: '2025-02-22', priority: 'medium', status: 'pending' },
+    { companyId: company2.id, title: 'Update RERA compliance documents', description: 'Submit quarterly progress reports for all active projects before the March deadline.', assignedTo: 'Amit Patel', dueDate: '2025-02-28', priority: 'low', status: 'completed' },
+
+    // PQR Travel (Travel)
+    { companyId: company3.id, title: 'Confirm hotel booking for corporate offsite — Goa', description: 'Finalize room allocation for 40 people at Taj Exotica. Confirm check-in dates March 15-17 and meal plans.', assignedTo: 'Neha Shah', dueDate: '2025-02-14', priority: 'high', status: 'in-progress' },
+    { companyId: company3.id, title: 'Coordinate with transport vendor for Kerala package', description: 'Confirm bus/accommodation arrangements with SRS Travels for the Kerala Backwaters tour starting March 5.', assignedTo: 'Neha Shah', dueDate: '2025-02-17', priority: 'high', status: 'pending' },
+    { companyId: company3.id, title: 'Prepare summer 2025 itinerary brochures', description: 'Design and finalize travel itineraries for Goa, Kerala, and Rajasthan packages. Include pricing and early bird offers.', assignedTo: 'Neha Shah', dueDate: '2025-02-25', priority: 'medium', status: 'in-progress' },
+    { companyId: company3.id, title: 'Follow up with Pooja Iyer on Kerala booking', description: 'Pooja enquired about Kerala package details. Send detailed itinerary and confirm booking.', assignedTo: 'Neha Shah', dueDate: '2025-02-12', priority: 'medium', status: 'completed' },
+    { companyId: company3.id, title: 'Negotiate group rates with ITC Hotels', description: 'Discuss corporate group rates with ITC Hotels for upcoming Rajasthan Heritage Tour. Target 25% discount.', assignedTo: 'Neha Shah', dueDate: '2025-02-19', priority: 'low', status: 'pending' },
+
+    // DEF Technologies (Tech)
+    { companyId: company4.id, title: 'Review PR #342 — Lead scoring module', description: 'Code review for the AI-powered lead scoring feature. Check model accuracy, API performance, and test coverage.', assignedTo: 'Vikram Singh', dueDate: '2025-02-13', priority: 'high', status: 'in-progress' },
+    { companyId: company4.id, title: 'Prepare deployment plan for v2.5 release', description: 'Finalize deployment checklist, staging environment tests, and rollback strategy for the February release.', assignedTo: 'Vikram Singh', dueDate: '2025-02-18', priority: 'high', status: 'pending' },
+    { companyId: company4.id, title: 'Set up demo environment for Arjun Menon', description: 'Configure a sandbox environment with sample data for the enterprise demo with Arjun\'s team.', assignedTo: 'Vikram Singh', dueDate: '2025-02-15', priority: 'medium', status: 'completed' },
+    { companyId: company4.id, title: 'Write API documentation for webhook endpoints', description: 'Document all webhook API endpoints including authentication, payload formats, and error codes.', assignedTo: 'Vikram Singh', dueDate: '2025-02-22', priority: 'medium', status: 'pending' },
+    { companyId: company4.id, title: 'Interview candidates for QA Engineer position', description: 'Review resumes and schedule interviews for the QA Engineer role. Coordinate with HR for panel availability.', assignedTo: 'Vikram Singh', dueDate: '2025-02-28', priority: 'low', status: 'pending' },
+
+    // MNO Healthcare (Healthcare)
+    { companyId: company5.id, title: 'Follow up with patient — post-surgery checkup', description: 'Call Mr. Verma for his post-knee surgery follow-up appointment scheduled this week.', assignedTo: 'Dr. Anita Desai', dueDate: '2025-02-14', priority: 'high', status: 'pending' },
+    { companyId: company5.id, title: 'Verify MRI machine calibration', description: 'Schedule technician visit for annual MRI machine calibration and preventive maintenance check.', assignedTo: 'Dr. Anita Desai', dueDate: '2025-02-20', priority: 'high', status: 'in-progress' },
+    { companyId: company5.id, title: 'Submit insurance claims for January', description: 'Compile and submit pending insurance claims for January patients to Star Health and ICICI Lombard.', assignedTo: 'Dr. Anita Desai', dueDate: '2025-02-16', priority: 'high', status: 'pending' },
+    { companyId: company5.id, title: 'Update patient records system', description: 'Migrate remaining 500 patient records to the new digital system. Coordinate with IT team.', assignedTo: 'Dr. Anita Desai', dueDate: '2025-03-01', priority: 'medium', status: 'in-progress' },
+    { companyId: company5.id, title: 'Prepare health camp logistics for Sunday', description: 'Arrange equipment, staff duty roster, and registration desk setup for the free health checkup camp.', assignedTo: 'Dr. Anita Desai', dueDate: '2025-02-12', priority: 'medium', status: 'completed' },
+  ];
+
+  for (const task of tasksData) {
+    const existingCount = await db.crmTask.count({ where: { companyId: task.companyId, title: task.title } });
+    if (existingCount === 0) {
+      await db.crmTask.create({
+        data: {
+          companyId: task.companyId,
+          title: task.title,
+          description: task.description,
+          assignedTo: task.assignedTo,
+          dueDate: task.dueDate,
+          priority: task.priority,
+          status: task.status,
+        },
+      });
+    }
+  }
+
+  // Seed Webhooks for each company
+  const webhooksData: { companyId: string; name: string; url: string; events: string; status: string; lastTriggered: Date | null; successCount: number; failCount: number }[] = [
+    // ABC School
+    { companyId: company1.id, name: 'New Lead Webhook', url: 'https://hooks.abcschool.com/leads/new', events: 'lead.created,lead.updated', status: 'active', lastTriggered: new Date('2025-02-10T14:30:00'), successCount: 87, failCount: 2 },
+    { companyId: company1.id, name: 'Enrollment Notification', url: 'https://hooks.abcschool.com/enrollment', events: 'lead.status_change', status: 'active', lastTriggered: new Date('2025-02-09T11:00:00'), successCount: 34, failCount: 0 },
+    { companyId: company1.id, name: 'Fee Payment Webhook', url: 'https://hooks.abcschool.com/payments', events: 'payment.created,payment.status_change', status: 'paused', lastTriggered: null, successCount: 0, failCount: 0 },
+
+    // XYZ Realty
+    { companyId: company2.id, name: 'Property Inquiry Webhook', url: 'https://hooks.xyzrealty.com/inquiries', events: 'lead.created,lead.updated', status: 'active', lastTriggered: new Date('2025-02-10T09:15:00'), successCount: 52, failCount: 3 },
+    { companyId: company2.id, name: 'Deal Closure Alert', url: 'https://hooks.xyzrealty.com/deals', events: 'lead.status_change', status: 'active', lastTriggered: new Date('2025-02-06T18:30:00'), successCount: 15, failCount: 1 },
+    { companyId: company2.id, name: 'Site Visit Scheduler', url: 'https://hooks.xyzrealty.com/site-visits', events: 'followup.created,followup.updated', status: 'active', lastTriggered: new Date('2025-02-09T14:00:00'), successCount: 28, failCount: 5 },
+
+    // PQR Travel
+    { companyId: company3.id, name: 'Booking Notification', url: 'https://hooks.pqrtravel.com/bookings', events: 'lead.status_change', status: 'active', lastTriggered: new Date('2025-02-08T09:30:00'), successCount: 31, failCount: 1 },
+    { companyId: company3.id, name: 'Travel Inquiry Webhook', url: 'https://hooks.pqrtravel.com/inquiries', events: 'lead.created,lead.updated', status: 'active', lastTriggered: new Date('2025-02-10T11:00:00'), successCount: 63, failCount: 4 },
+    { companyId: company3.id, name: 'Vendor Sync', url: 'https://hooks.pqrtravel.com/vendor-sync', events: 'broadcast.sent,broadcast.delivered', status: 'paused', lastTriggered: null, successCount: 0, failCount: 0 },
+
+    // DEF Technologies
+    { companyId: company4.id, name: 'SaaS Lead Webhook', url: 'https://hooks.deftech.com/leads', events: 'lead.created,lead.updated,lead.status_change', status: 'active', lastTriggered: new Date('2025-02-10T13:00:00'), successCount: 95, failCount: 2 },
+    { companyId: company4.id, name: 'Deployment Pipeline', url: 'https://hooks.deftech.com/deploy', events: 'automation.executed,automation.failed', status: 'active', lastTriggered: new Date('2025-02-10T15:00:00'), successCount: 120, failCount: 8 },
+    { companyId: company4.id, name: 'Analytics Tracker', url: 'https://hooks.deftech.com/analytics', events: 'lead.created,lead.status_change,payment.created', status: 'active', lastTriggered: new Date('2025-02-10T12:00:00'), successCount: 210, failCount: 12 },
+
+    // MNO Healthcare
+    { companyId: company5.id, name: 'Patient Registration Webhook', url: 'https://hooks.mnohealth.com/patients', events: 'lead.created,lead.updated', status: 'active', lastTriggered: new Date('2025-02-10T08:00:00'), successCount: 70, failCount: 3 },
+    { companyId: company5.id, name: 'Appointment Scheduler', url: 'https://hooks.mnohealth.com/appointments', events: 'followup.created,followup.updated', status: 'active', lastTriggered: new Date('2025-02-09T10:00:00'), successCount: 45, failCount: 1 },
+    { companyId: company5.id, name: 'Insurance Claim Tracker', url: 'https://hooks.mnohealth.com/insurance', events: 'lead.status_change', status: 'paused', lastTriggered: new Date('2025-01-20T09:00:00'), successCount: 18, failCount: 2 },
+  ];
+
+  for (const wh of webhooksData) {
+    const existingCount = await db.webhook.count({ where: { companyId: wh.companyId, name: wh.name } });
+    if (existingCount === 0) {
+      await db.webhook.create({
+        data: {
+          companyId: wh.companyId,
+          name: wh.name,
+          url: wh.url,
+          events: wh.events,
+          status: wh.status,
+          lastTriggered: wh.lastTriggered,
+          successCount: wh.successCount,
+          failCount: wh.failCount,
+        },
+      });
+    }
+  }
+
   console.log('Seed data created successfully with Trovira Plan!');
 }
 

@@ -34,10 +34,12 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const { id, ...data } = body;
-    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+    if (!id) return NextResponse.json({ error: 'Automation rule id is required' }, { status: 400 });
+    const existing = await db.automationRule.findUnique({ where: { id } });
+    if (!existing) return NextResponse.json({ error: 'Automation rule not found' }, { status: 404 });
     const rule = await db.automationRule.update({ where: { id }, data });
     return NextResponse.json({ rule });
-  } catch (error) { console.error(error); return NextResponse.json({ error: 'Failed' }, { status: 500 }); }
+  } catch (error) { console.error('Error updating automation rule:', error); return NextResponse.json({ error: 'Failed to update automation rule' }, { status: 500 }); }
 }
 
 // DELETE /api/crm/automation?id=xxx
@@ -45,8 +47,10 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+    if (!id) return NextResponse.json({ error: 'Automation rule id is required' }, { status: 400 });
+    const existing = await db.automationRule.findUnique({ where: { id } });
+    if (!existing) return NextResponse.json({ error: 'Automation rule not found' }, { status: 404 });
     await db.automationRule.delete({ where: { id } });
     return NextResponse.json({ success: true });
-  } catch (error) { console.error(error); return NextResponse.json({ error: 'Failed' }, { status: 500 }); }
+  } catch (error) { console.error('Error deleting automation rule:', error); return NextResponse.json({ error: 'Failed to delete automation rule' }, { status: 500 }); }
 }
