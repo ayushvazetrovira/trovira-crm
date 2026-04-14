@@ -24,24 +24,14 @@ export function LoginPage() {
     }
   };
 
-  const quickLogin = async (loginEmail: string, loginPassword: string) => {
-    setEmail(loginEmail);
-    setPassword(loginPassword);
-    setError('');
-    const success = await login(loginEmail, loginPassword);
-    if (!success) {
-      setError('Login failed');
-    }
-  };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Logo & Title */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4">
-            <Building2 className="w-8 h-8" />
-          </div>
+          <img src="/logo.jpg" alt="Trovira Logo" className="mx-auto h-16 w-16 mb-4" />
           <h1 className="text-3xl font-bold tracking-tight">Trovira CRM</h1>
           <p className="text-muted-foreground">Multi-Tenant SaaS Customer Relationship Management</p>
         </div>
@@ -89,64 +79,7 @@ export function LoginPage() {
           </CardContent>
         </Card>
 
-        {/* Quick Access */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Quick Access (Demo)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-center gap-2 mb-3">
-              <Shield className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">Super Admin</span>
-            </div>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-sm"
-              onClick={() => quickLogin('admin@trovira.com', 'admin123')}
-            >
-              admin@trovira.com
-            </Button>
-            <div className="flex items-center gap-2 mb-3 mt-4">
-              <Users className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">Client CRM — Trovira Plan</span>
-            </div>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-sm"
-              onClick={() => quickLogin('raj@abcschool.com', 'client123')}
-            >
-              ABC School
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-sm"
-              onClick={() => quickLogin('amit@xyzrealty.com', 'client123')}
-            >
-              XYZ Realty
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-sm"
-              onClick={() => quickLogin('neha@pqrtravel.com', 'client123')}
-            >
-              PQR Travel
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-sm"
-              onClick={() => quickLogin('vikram@deftech.com', 'client123')}
-            >
-              DEF Technologies
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-sm"
-              onClick={() => quickLogin('anita@mnohealth.com', 'client123')}
-            >
-              MNO Healthcare
-            </Button>
-          </CardContent>
-        </Card>
+
       </div>
     </div>
   );

@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   keywords: ["CRM", "Trovira", "SaaS", "Lead Management", "Customer Relationship Management"],
   authors: [{ name: "Z.ai Team" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo.jpg",
   },
   openGraph: {
     title: "Trovira CRM",

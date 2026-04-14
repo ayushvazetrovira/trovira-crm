@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Users, Target, Package, CheckCircle2, Star, Crown } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 interface PlanItem {
   id: string;
@@ -47,19 +48,53 @@ const troviraPlanFeatures = [
 export function AdminPlans() {
   const [plan, setPlan] = useState<PlanItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({ name: '', price: 0, userLimit: 0, leadLimit: 0, isActive: false });
 
   const fetchPlans = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/plans');
       if (!res.ok) throw new Error('Failed to load plans');
       const json = await res.json();
-      setPlan(json[0] || null);
+      const activePlan = json[0];
+      if (activePlan) {
+        setPlan(activePlan);
+        setFormData({
+          name: activePlan.name,
+          price: activePlan.price,
+          userLimit: activePlan.userLimit,
+          leadLimit: activePlan.leadLimit,
+          isActive: activePlan.isActive,
+        });
+      }
     } catch {
       toast.error('Failed to load plans');
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const handleSave = useCallback(async () => {
+    if (!plan) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/plans/${plan.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      const updatedPlan = await res.json();
+      setPlan(updatedPlan);
+      toast.success('Plan updated successfully');
+      setEditing(false);
+    } catch {
+      toast.error('Failed to save plan');
+    } finally {
+      setSaving(false);
+    }
+  }, [plan, formData]);
 
   useEffect(() => {
     fetchPlans();
@@ -101,53 +136,139 @@ export function AdminPlans() {
             <div>
               <CardTitle className="text-xl">{plan.name}</CardTitle>
               <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-0 text-xs">
-                  {plan.isActive ? 'Active' : 'Inactive'}
+<Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-0 text-xs">
+                  {plan?.isActive ? 'Active' : 'Inactive'}
                 </Badge>
+                {editing ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditing(false)}
+                    className="ml-2 h-7 px-3"
+                  >
+                    Cancel
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditing(true)}
+                    className="ml-2 h-7 px-3"
+                  >
+                    Edit Plan
+                  </Button>
+                )}
                 <span className="text-xs text-gray-500">
                   {plan._count.companies} client{plan._count.companies !== 1 ? 's' : ''}
                 </span>
               </div>
             </div>
           </div>
-          <div className="mt-4">
-            <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-bold text-gray-900">₹{plan.price.toLocaleString('en-IN')}</span>
-              <span className="text-sm text-gray-500">/month</span>
-            </div>
+<div className="mt-4">
+            <p className="text-3xl font-bold text-gray-900">
+              ₹{plan?.price?.toLocaleString('en-IN') || '0'}/<span className="text-lg">month</span>
+            </p>
+            <p className="text-sm text-gray-500">Billed monthly per company</p>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center gap-2 p-3 bg-white/60 rounded-lg">
-              <Users className="h-4 w-4 text-teal-600" />
-              <div>
-                <p className="text-xs text-gray-500">Users</p>
-                <p className="text-sm font-semibold text-gray-900">{plan.userLimit}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 p-3 bg-white/60 rounded-lg">
-              <Target className="h-4 w-4 text-teal-600" />
-              <div>
-                <p className="text-xs text-gray-500">Lead Limit</p>
-                <p className="text-sm font-semibold text-gray-900">
-                  {plan.leadLimit >= 999999 ? 'Unlimited' : plan.leadLimit.toLocaleString('en-IN')}
-                </p>
-              </div>
-            </div>
+{editing ? (
+                <div className="space-y-3 p-4 bg-white/80 rounded-xl border">
+                  <label className="text-xs font-semibold text-gray-700 block mb-1">Monthly Price (₹)</label>
+                  <input
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData({...formData, price: parseInt(e.target.value) || 0})}
+                    className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    min="0"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 p-3 bg-white/60 rounded-lg">
+                  <Users className="h-4 w-4 text-teal-600" />
+                  <div>
+                    <p className="text-xs text-gray-500">Users</p>
+                    <p className="text-sm font-semibold text-gray-900">{plan?.userLimit}</p>
+                  </div>
+                </div>
+              )}
+{editing ? (
+                <>
+                  <div className="space-y-3 p-4 bg-white/80 rounded-xl border">
+                    <label className="text-xs font-semibold text-gray-700 block mb-1">User Limit</label>
+                    <input
+                      type="number"
+                      value={formData.userLimit}
+                      onChange={(e) => setFormData({...formData, userLimit: parseInt(e.target.value) || 0})}
+                      className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      min="1"
+                    />
+                  </div>
+                  <div className="space-y-3 p-4 bg-white/80 rounded-xl border">
+                    <label className="text-xs font-semibold text-gray-700 block mb-1">Lead Limit (999999 = Unlimited)</label>
+                    <input
+                      type="number"
+                      value={formData.leadLimit}
+                      onChange={(e) => setFormData({...formData, leadLimit: parseInt(e.target.value) || 0})}
+                      className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      min="0"
+                    />
+                  </div>
+                  <div className="space-y-3 p-4 bg-white/80 rounded-xl border">
+                    <label className="text-xs font-semibold text-gray-700 block mb-1">Active</label>
+                    <input
+                      type="checkbox"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({...formData, isActive: e.target.checked})}
+                      className="w-4 h-4 text-teal-600 bg-gray-100 border-gray-300 rounded focus:ring-teal-500"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-2 p-3 bg-white/60 rounded-lg">
+                  <Target className="h-4 w-4 text-teal-600" />
+                  <div>
+                    <p className="text-xs text-gray-500">Lead Limit</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {plan?.leadLimit >= 999999 ? 'Unlimited' : plan?.leadLimit.toLocaleString('en-IN')}
+                    </p>
+                  </div>
+                </div>
+              )}
           </div>
 
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">All Features Included</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {troviraPlanFeatures.map((feature, idx) => (
-                <div key={idx} className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-gray-700">{feature}</span>
-                </div>
-              ))}
+          {editing ? (
+            <div className="flex gap-3 pt-4">
+              <Button 
+                onClick={handleSave} 
+                disabled={saving || !plan}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setEditing(false)}
+                disabled={saving}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
             </div>
-          </div>
+          ) : (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">All Features Included</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {troviraPlanFeatures.map((feature, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -168,9 +289,9 @@ export function AdminPlans() {
                 <p className="text-sm font-semibold text-neutral-900">{plan.name}</p>
               </div>
               <div className="rounded-lg bg-neutral-50 p-4 text-center">
-                <span className="text-xl">₹</span>
+                <Package className="h-5 w-5 mx-auto text-neutral-400 mb-1" />
                 <p className="text-xs text-neutral-500">Price / Month</p>
-                <p className="text-sm font-semibold text-emerald-600">₹{plan.price.toLocaleString('en-IN')}</p>
+                <p className="text-sm font-semibold text-emerald-600">Contact Sales</p>
               </div>
               <div className="rounded-lg bg-neutral-50 p-4 text-center">
                 <Users className="h-5 w-5 mx-auto text-neutral-400 mb-1" />

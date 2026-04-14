@@ -67,17 +67,15 @@ function SidebarContent({ collapsed, onNavigate, currentPage }: {
 }) {
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-4 py-5">
-        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-600 text-white shrink-0">
-          <Building2 className="w-5 h-5" />
+        <div className="flex items-center gap-3 px-4 py-5">
+          <img src="/logo.jpg" alt="Trovira" className="w-9 h-9 rounded-lg shrink-0 object-contain bg-white/20 p-1" />
+          {!collapsed && (
+            <div className="min-w-0">
+              <h2 className="font-bold text-base text-white truncate">Trovira</h2>
+              <p className="text-xs text-slate-400">Admin Panel</p>
+            </div>
+          )}
         </div>
-        {!collapsed && (
-          <div className="min-w-0">
-            <h2 className="font-bold text-base text-white truncate">Trovira</h2>
-            <p className="text-xs text-slate-400">Admin Panel</p>
-          </div>
-        )}
-      </div>
       <Separator className="bg-slate-700" />
       <ScrollArea className="flex-1 py-4 px-3">
         <nav className="space-y-1">

@@ -1,7 +1,16 @@
-'use client';
+ 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore, CrmPage } from '@/lib/store';
+
+interface Plan {
+  id: string;
+  name: string;
+  price: number;
+  userLimit: number;
+  leadLimit: number;
+  isActive: boolean;
+}
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -145,11 +154,15 @@ function SidebarContent({
   setCrmPage,
   companyName,
   onAddLead,
+  plan,
+  planLoading,
 }: {
   crmPage: CrmPage;
   setCrmPage: (page: CrmPage) => void;
   companyName: string;
   onAddLead: () => void;
+  plan: Plan | null;
+  planLoading: boolean;
 }) {
   const mainItems = navItems.filter(i => !i.section);
   const integrationItems = navItems.filter(i => i.section === 'integrations');
@@ -157,11 +170,22 @@ function SidebarContent({
   return (
     <div className="flex h-full flex-col">
       <div className="bg-gradient-to-br from-teal-600 to-emerald-700 p-5">
+        <img src="/logo.jpg" alt="Trovira" className="mb-3 h-12 w-12 rounded-lg object-contain bg-white/20 p-1.5 mx-auto sm:mx-0" />
         <h1 className="text-xl font-bold text-white tracking-tight">Trovira</h1>
         <p className="text-teal-100 text-sm mt-1 truncate">{companyName}</p>
-        <Badge className="mt-2 bg-white/20 text-white border-0 text-xs">
-          Trovira Plan
-        </Badge>
+{planLoading ? (
+          <Badge className="mt-2 bg-white/20 text-white border-0 text-xs">
+            Loading Plan...
+          </Badge>
+        ) : plan ? (
+          <Badge className="mt-2 bg-white/20 text-white border-0 text-xs">
+            {plan.name} (₹{plan.price.toLocaleString('en-IN')}/mo)
+          </Badge>
+        ) : (
+          <Badge className="mt-2 bg-white/20 text-white border-0 text-xs" variant="secondary">
+            No Active Plan
+          </Badge>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 px-3 py-4 sidebar-scroll">
@@ -231,6 +255,25 @@ export function CrmPanel() {
   const { user, crmPage, setCrmPage, logout, notifications, showNotifications, setShowNotifications } = useAppStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [addLeadTrigger, setAddLeadTrigger] = useState(false);
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [planLoading, setPlanLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchPlan() {
+      try {
+        const res = await fetch('/api/admin/plans');
+        if (res.ok) {
+          const plans = await res.json();
+          setPlan(plans[0] || null);
+        }
+      } catch {
+        // silent
+      } finally {
+        setPlanLoading(false);
+      }
+    }
+    fetchPlan();
+  }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -289,6 +332,8 @@ export function CrmPanel() {
           setCrmPage={(page) => setCrmPage(page)}
           companyName={user.companyName || 'My Company'}
           onAddLead={handleAddLead}
+          plan={plan}
+          planLoading={planLoading}
         />
       </aside>
 
@@ -314,6 +359,8 @@ export function CrmPanel() {
                 }}
                 companyName={user.companyName || 'My Company'}
                 onAddLead={handleAddLead}
+                plan={plan}
+                planLoading={planLoading}
               />
             </SheetContent>
           </Sheet>
@@ -321,11 +368,21 @@ export function CrmPanel() {
           <div className="flex-1 flex items-center gap-4">
             <div className="hidden sm:block">
               <h2 className="text-sm font-semibold text-gray-900">{currentPageLabel}</h2>
-              <div className="flex items-center gap-2">
+<div className="flex items-center gap-2">
                 <p className="text-xs text-gray-500">{user.companyName}</p>
-                <Badge variant="secondary" className="bg-teal-100 text-teal-700 text-[10px] px-1.5 py-0">
-                  Trovira Plan
-                </Badge>
+                {planLoading ? (
+                  <Badge variant="secondary" className="bg-teal-100 text-teal-700 text-[10px] px-1.5 py-0">
+                    Loading...
+                  </Badge>
+                ) : plan ? (
+                  <Badge variant="secondary" className="bg-teal-100 text-teal-700 text-[10px] px-1.5 py-0" title={`${plan.userLimit} users | ${plan.leadLimit >= 999999 ? 'Unlimited' : plan.leadLimit.toLocaleString('en-IN')} leads`}>
+                    {plan.name}<span className="ml-1 text-[8px]">₹{plan.price.toLocaleString()}</span>
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-orange-100 text-orange-700 text-[10px] px-1.5 py-0">
+                    No Plan
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
