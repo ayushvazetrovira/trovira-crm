@@ -25,7 +25,6 @@ import {
   Users,
   Target,
   Zap,
-  Megaphone,
   Bot,
   BarChart3,
   Kanban,
@@ -44,6 +43,7 @@ interface Settings {
 
 export function CrmSettings() {
   const { user } = useAppStore();
+
   const [settings, setSettings] = useState<Settings>({
     businessName: '',
     whatsappNumber: '',
@@ -51,9 +51,11 @@ export function CrmSettings() {
     email: '',
     phone: '',
   });
+
   const [loading, setLoading] = useState(true);
   const [savingBusiness, setSavingBusiness] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -66,7 +68,15 @@ export function CrmSettings() {
         const res = await fetch(`/api/crm/settings?companyId=${user?.companyId}`);
         if (res.ok) {
           const json = await res.json();
-          setSettings(json);
+
+          // ✅ FIX: prevent null values crashing inputs
+          setSettings({
+            businessName: json?.businessName ?? '',
+            whatsappNumber: json?.whatsappNumber ?? '',
+            logo: json?.logo ?? '',
+            email: json?.email ?? '',
+            phone: json?.phone ?? '',
+          });
         }
       } catch {
         // silent
@@ -74,17 +84,20 @@ export function CrmSettings() {
         setLoading(false);
       }
     }
+
     if (user?.companyId) fetchSettings();
   }, [user?.companyId]);
 
   const handleSaveBusiness = async () => {
     try {
       setSavingBusiness(true);
+
       const res = await fetch(`/api/crm/settings?companyId=${user?.companyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
       });
+
       if (res.ok) {
         toast.success('Business information updated successfully');
       } else {
@@ -99,20 +112,28 @@ export function CrmSettings() {
   };
 
   const handleChangePassword = async () => {
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+    if (
+      !passwordForm.currentPassword ||
+      !passwordForm.newPassword ||
+      !passwordForm.confirmPassword
+    ) {
       toast.error('All password fields are required');
       return;
     }
+
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast.error('New passwords do not match');
       return;
     }
+
     if (passwordForm.newPassword.length < 6) {
       toast.error('Password must be at least 6 characters');
       return;
     }
+
     try {
       setSavingPassword(true);
+
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -122,6 +143,7 @@ export function CrmSettings() {
           newPassword: passwordForm.newPassword,
         }),
       });
+
       if (res.ok) {
         toast.success('Password changed successfully');
         setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -148,7 +170,8 @@ export function CrmSettings() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      {/* Profile Settings */}
+
+      {/* Profile */}
       <Card className="border-0 shadow-sm">
         <CardHeader>
           <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -157,284 +180,140 @@ export function CrmSettings() {
           </CardTitle>
           <CardDescription>Your personal account information</CardDescription>
         </CardHeader>
+
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
             <div className="space-y-2">
               <Label className="text-xs text-gray-500">Display Name</Label>
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700 font-bold">
-                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                  <p className="text-xs text-gray-400">Account Owner</p>
-                </div>
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm font-medium">{user?.name}</p>
               </div>
             </div>
+
             <div className="space-y-2">
-              <Label className="text-xs text-gray-500">Email Address</Label>
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <Mail className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-700">{user?.email}</span>
+              <Label className="text-xs text-gray-500">Email</Label>
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm">{user?.email}</p>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs text-gray-500">Company</Label>
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <Building2 className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-700">{user?.companyName || '-'}</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs text-gray-500">Role</Label>
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <Shield className="h-4 w-4 text-gray-400" />
-                <Badge variant="secondary" className="capitalize bg-teal-100 text-teal-700">
-                  {user?.role}
-                </Badge>
-              </div>
-            </div>
+
           </div>
         </CardContent>
       </Card>
 
-      {/* Business Information */}
+      {/* Business Info */}
       <Card className="border-0 shadow-sm">
         <CardHeader>
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Building2 className="h-4 w-4 text-teal-600" />
             Business Information
           </CardTitle>
-          <CardDescription>Manage your business details that appear in your CRM</CardDescription>
         </CardHeader>
+
         <CardContent className="space-y-4">
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
+
+            <div>
               <Label>Business Name</Label>
-              <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Your business name"
-                  value={settings.businessName}
-                  onChange={(e) => setSettings({ ...settings, businessName: e.target.value })}
-                  className="pl-9"
-                />
-              </div>
+              <Input
+                value={settings.businessName ?? ''}
+                onChange={(e) =>
+                  setSettings({ ...settings, businessName: e.target.value })
+                }
+              />
             </div>
-            <div className="space-y-2">
-              <Label>Business Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  type="email"
-                  placeholder="business@example.com"
-                  value={settings.email}
-                  onChange={(e) => setSettings({ ...settings, email: e.target.value })}
-                  className="pl-9"
-                />
-              </div>
+
+            <div>
+              <Label>Email</Label>
+              <Input
+                value={settings.email ?? ''}
+                onChange={(e) =>
+                  setSettings({ ...settings, email: e.target.value })
+                }
+              />
             </div>
-            <div className="space-y-2">
-              <Label>Business Phone</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="+91 98765 43210"
-                  value={settings.phone}
-                  onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-                  className="pl-9"
-                />
-              </div>
+
+            <div>
+              <Label>Phone</Label>
+              <Input
+                value={settings.phone ?? ''}
+                onChange={(e) =>
+                  setSettings({ ...settings, phone: e.target.value })
+                }
+              />
             </div>
-            <div className="space-y-2">
-              <Label>WhatsApp Number</Label>
-              <div className="relative">
-                <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="+91 98765 43210"
-                  value={settings.whatsappNumber}
-                  onChange={(e) => setSettings({ ...settings, whatsappNumber: e.target.value })}
-                  className="pl-9"
-                />
-              </div>
+
+            <div>
+              <Label>WhatsApp</Label>
+              <Input
+                value={settings.whatsappNumber ?? ''}
+                onChange={(e) =>
+                  setSettings({ ...settings, whatsappNumber: e.target.value })
+                }
+              />
             </div>
+
           </div>
+
           <div className="flex justify-end">
-            <Button
-              onClick={handleSaveBusiness}
-              disabled={savingBusiness}
-              className="bg-teal-600 hover:bg-teal-700 text-white"
-            >
-              {savingBusiness ? (
-                'Saving...'
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-1.5" />
-                  Save Changes
-                </>
-              )}
+            <Button onClick={handleSaveBusiness} disabled={savingBusiness}>
+              <Save className="h-4 w-4 mr-2" />
+              Save
             </Button>
           </div>
+
         </CardContent>
       </Card>
 
-      {/* Subscription Plan */}
+      {/* Password */}
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-teal-600" />
-            Subscription Plan
-          </CardTitle>
-          <CardDescription>Your current subscription details</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="p-4 rounded-lg bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-100">
-                  <Crown className="h-6 w-6 text-teal-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">Trovira Plan</p>
-                  <p className="text-sm text-gray-500">Complete CRM with all features included</p>
-                </div>
-              </div>
-              <Badge
-                className={`${
-                  user?.subscriptionStatus === 'active'
-                    ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                    : 'bg-red-100 text-red-700 border-red-200'
-                }`}
-                variant="outline"
-              >
-                {user?.subscriptionStatus === 'active' ? 'Active' : user?.subscriptionStatus === 'expired' ? 'Expired' : 'Active'}
-              </Badge>
-            </div>
-            <Separator className="my-4" />
-
-            {/* All Features */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-              {[
-                { icon: Users, label: 'Lead Management (Add, Edit, Delete)' },
-                { icon: Kanban, label: 'Advanced Pipeline (Custom Stages)' },
-                { icon: Clock, label: 'Follow-up Reminders & Scheduling' },
-                { icon: ListTodo, label: 'Task Management' },
-                { icon: UserCog, label: 'Team Management (Up to 15 Users)' },
-                { icon: Mail, label: 'Send & Receive Email' },
-                { icon: MessageCircle, label: 'WhatsApp Inbox & Broadcast' },
-                { icon: Target, label: 'Export Lead Data' },
-                { icon: BarChart3, label: 'Advanced Reports & Analytics' },
-                { icon: Zap, label: 'Workflow Automation' },
-                { icon: Bot, label: 'API / Integrations' },
-                { icon: CheckCircle2, label: 'Unlimited Leads' },
-              ].map((item, idx) => {
-                const Icon = item.icon;
-                return (
-                  <div key={idx} className="flex items-center gap-2 text-sm text-gray-700">
-                    <Icon className="h-4 w-4 text-teal-600 flex-shrink-0" />
-                    <span>{item.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="text-gray-500">Plan</p>
-                <p className="font-medium">Trovira Plan</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Price</p>
-                <p className="font-medium">₹2,999/month</p>
-              </div>
-              {user?.subscriptionExpiry && (
-                <div>
-                  <p className="text-gray-500">Expires</p>
-                  <p className="font-medium">{new Date(user.subscriptionExpiry).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-gray-500">Status</p>
-                <p className={`font-medium ${user?.subscriptionStatus === 'active' ? 'text-emerald-600' : 'text-red-600'}`}>
-                  {user?.subscriptionStatus === 'active' ? 'Active' : user?.subscriptionStatus === 'expired' ? 'Expired' : 'Active'}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-500">Users</p>
-                <p className="font-medium">Up to 15</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Leads</p>
-                <p className="font-medium">Unlimited</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Change Password */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold">
             <Lock className="h-4 w-4 text-teal-600" />
             Change Password
           </CardTitle>
-          <CardDescription>Update your account password for security</CardDescription>
         </CardHeader>
+
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Current Password</Label>
-            <Input
-              type="password"
-              placeholder="Enter current password"
-              value={passwordForm.currentPassword}
-              onChange={(e) =>
-                setPasswordForm({ ...passwordForm, currentPassword: e.target.value })
-              }
-            />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>New Password</Label>
-              <Input
-                type="password"
-                placeholder="Enter new password"
-                value={passwordForm.newPassword}
-                onChange={(e) =>
-                  setPasswordForm({ ...passwordForm, newPassword: e.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Confirm New Password</Label>
-              <Input
-                type="password"
-                placeholder="Confirm new password"
-                value={passwordForm.confirmPassword}
-                onChange={(e) =>
-                  setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
-                }
-              />
-            </div>
-          </div>
+
+          <Input
+            type="password"
+            placeholder="Current password"
+            value={passwordForm.currentPassword}
+            onChange={(e) =>
+              setPasswordForm({ ...passwordForm, currentPassword: e.target.value })
+            }
+          />
+
+          <Input
+            type="password"
+            placeholder="New password"
+            value={passwordForm.newPassword}
+            onChange={(e) =>
+              setPasswordForm({ ...passwordForm, newPassword: e.target.value })
+            }
+          />
+
+          <Input
+            type="password"
+            placeholder="Confirm password"
+            value={passwordForm.confirmPassword}
+            onChange={(e) =>
+              setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
+            }
+          />
+
           <div className="flex justify-end">
-            <Button
-              onClick={handleChangePassword}
-              disabled={savingPassword}
-              variant="outline"
-            >
-              {savingPassword ? (
-                'Changing...'
-              ) : (
-                <>
-                  <Lock className="h-4 w-4 mr-1.5" />
-                  Change Password
-                </>
-              )}
+            <Button onClick={handleChangePassword} disabled={savingPassword}>
+              Change Password
             </Button>
           </div>
+
         </CardContent>
       </Card>
+
     </div>
   );
 }

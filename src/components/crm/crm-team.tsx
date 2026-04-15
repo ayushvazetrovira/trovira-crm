@@ -500,11 +500,18 @@ export function CrmTeam() {
                       <UserCheck className="h-3.5 w-3.5 text-sky-500" /> Agent
                     </span>
                   </SelectItem>
+
                   <SelectItem value="Viewer">
                     <span className="flex items-center gap-2">
                       <Users className="h-3.5 w-3.5 text-gray-400" /> Viewer
                     </span>
                   </SelectItem>
+                  <SelectItem value="Other">
+                    <span className="flex items-center gap-2">
+                      <Users className="h-3.5 w-3.5 text-gray-400" /> Other
+                    </span>
+                  </SelectItem>
+
                 </SelectContent>
               </Select>
             </div>

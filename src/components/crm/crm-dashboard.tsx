@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useAppStore } from '@/lib/store';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import React, { useEffect, useState, useCallback } from "react";
+import { useAppStore } from "@/lib/store";
+import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -12,7 +13,29 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
+import {
+  Button,
+} from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import {
   Users,
   UserPlus,
@@ -26,7 +49,9 @@ import {
   Calendar,
   Activity,
   BarChart3,
-} from 'lucide-react';
+  Headphones,
+  Plus,
+} from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -36,8 +61,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-} from 'recharts';
-import { format } from 'date-fns';
+} from "recharts";
+import { format } from "date-fns";
 
 interface DashboardData {
   leadsByStatus: Record<string, number>;
@@ -70,6 +95,20 @@ interface DashboardData {
   }>;
 }
 
+interface TicketItem {
+  id: string;
+  subject: string;
+  issue: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+  updatedAt: string;
+  company: {
+    id: string;
+    name: string;
+  };
+}
+
 const statusColors: Record<string, string> = {
   New: 'bg-gray-100 text-gray-700',
   Contacted: 'bg-white text-gray-600 border border-gray-300',
@@ -77,6 +116,18 @@ const statusColors: Record<string, string> = {
   'Proposal Sent': 'bg-amber-100 text-amber-800',
   Won: 'bg-emerald-100 text-emerald-800',
   Lost: 'bg-red-100 text-red-800',
+};
+
+const ticketStatusColors: Record<string, string> = {
+  open: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  in_progress: 'bg-amber-100 text-amber-700 border-amber-200',
+  closed: 'bg-neutral-100 text-neutral-500 border-neutral-200',
+};
+
+const ticketPriorityColors: Record<string, string> = {
+  high: 'bg-red-100 text-red-700',
+  medium: 'bg-amber-100 text-amber-700',
+  low: 'bg-emerald-100 text-emerald-700',
 };
 
 const barColors = ['#6b7280', '#14b8a6', '#0ea5e9', '#f59e0b', '#10b981', '#ef4444'];
@@ -89,27 +140,121 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function TicketStatusBadge({ status }: { status: string }) {
+  const labels: Record<string, string> = {
+    open: 'Open',
+    in_progress: 'In Progress',
+    closed: 'Closed',
+  };
+  return (
+    <Badge variant="outline" className={ticketStatusColors[status] || 'bg-neutral-100 text-neutral-700'}>
+      {labels[status] || status}
+    </Badge>
+  );
+}
+
+function PriorityBadge({ priority }: { priority: string }) {
+  return (
+    <Badge variant="secondary" className={ticketPriorityColors[priority] || 'bg-neutral-100 text-neutral-700'}>
+      {priority.charAt(0).toUpperCase() + priority.slice(1)}
+    </Badge>
+  );
+}
+
 export function CrmDashboard() {
   const { user } = useAppStore();
   const [data, setData] = useState<DashboardData | null>(null);
+  const [tickets, setTickets] = useState<TicketItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    subject: '',
+    issue: '',
+    priority: 'medium' as 'low' | 'medium' | 'high',
+  });
+
+  const fetchDashboard = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/crm/dashboard?companyId=${user?.companyId}`);
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+      }
+    } catch {
+      // silent fail
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.companyId]);
+
+  const fetchTickets = useCallback(async () => {
+    if (!user?.companyId) return;
+    setTicketsLoading(true);
+    try {
+      const res = await fetch(`/api/crm/support?companyId=${user.companyId}`);
+      if (res.ok) {
+        const json = await res.json();
+        setTickets(json);
+      }
+    } catch {
+      toast.error('Failed to load tickets');
+    } finally {
+      setTicketsLoading(false);
+    }
+  }, [user?.companyId]);
+
 
   useEffect(() => {
-    async function fetchDashboard() {
-      try {
-        const res = await fetch(`/api/crm/dashboard?companyId=${user?.companyId}`);
-        if (res.ok) {
-          const json = await res.json();
-          setData(json);
-        }
-      } catch {
-        // silent fail
-      } finally {
-        setLoading(false);
-      }
+    if (user?.companyId) {
+      fetchDashboard();
+      fetchTickets();
     }
-    if (user?.companyId) fetchDashboard();
-  }, [user?.companyId]);
+  }, [fetchDashboard, fetchTickets]);
+
+  const openTicketsCount = tickets.filter(t => t.status === 'open').length;
+  const totalTicketsCount = tickets.length;
+
+  const handleCreateTicket = async () => {
+    if (!createForm.subject || !createForm.issue) {
+      toast.error('Subject and issue are required');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/crm/support', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-company-id': user!.companyId!,
+        },
+        body: JSON.stringify(createForm),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to create ticket');
+      }
+      toast.success('Ticket created successfully!');
+      setCreateOpen(false);
+      setCreateForm({ subject: '', issue: '', priority: 'medium' });
+      fetchTickets();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create ticket');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   if (loading) {
     return (
@@ -146,6 +291,11 @@ export function CrmDashboard() {
     { label: 'Pending Follow-ups', value: data.todayFollowups, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
   ];
 
+  const ticketStats = [
+    { label: 'Total Tickets', value: totalTicketsCount, icon: Headphones, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Open Tickets', value: openTicketsCount, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
+  ];
+
   const chartData = Object.entries(data.leadsByStatus).map(([key, value], idx) => ({
     name: key,
     count: value,
@@ -175,6 +325,40 @@ export function CrmDashboard() {
           );
         })}
       </div>
+
+      {/* Tickets Stats */}
+      {!ticketsLoading && (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {ticketStats.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <Card key={stat.label} className="border-0 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-gray-500 font-medium">{stat.label}</p>
+                      <p className="text-2xl font-bold mt-1 text-gray-900">{stat.value}</p>
+                    </div>
+                    <div className={`${stat.bg} p-2 rounded-lg`}>
+                      <Icon className={`h-4 w-4 ${stat.color}`} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4 cursor-pointer hover:shadow-md transition-all" onClick={() => setCreateOpen(true)}>
+              <div className="flex items-center justify-center h-full">
+                <Button variant="outline" className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Raise Ticket
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Chart + Today Follow-ups */}
       <div className="grid lg:grid-cols-2 gap-6">
@@ -342,6 +526,54 @@ export function CrmDashboard() {
         </Card>
       </div>
 
+      {/* Recent Support Tickets */}
+      {tickets.length > 0 && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <Headphones className="h-4 w-4 text-blue-600" />
+              Recent Support Tickets
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="max-h-[400px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">ID</TableHead>
+                    <TableHead className="text-xs">Subject</TableHead>
+                    <TableHead className="text-xs">Date</TableHead>
+                    <TableHead className="text-xs">Status</TableHead>
+                    <TableHead className="text-xs">Priority</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tickets.slice(0, 8).map((ticket) => (
+                    <TableRow key={ticket.id}>
+                      <TableCell className="font-mono text-xs text-neutral-500">
+                        #{ticket.id.slice(0, 8)}
+                      </TableCell>
+                      <TableCell className="font-medium text-sm max-w-[200px] truncate">
+                        {ticket.subject}
+                      </TableCell>
+                      <TableCell className="text-sm text-neutral-500">
+                        {formatDate(ticket.createdAt)}
+                      </TableCell>
+                      <TableCell>
+                        <TicketStatusBadge status={ticket.status} />
+                      </TableCell>
+                      <TableCell>
+                        <PriorityBadge priority={ticket.priority} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Overdue Alert */}
       {data.overdueFollowups > 0 && (
         <Card className="border-red-200 bg-red-50">
@@ -358,6 +590,64 @@ export function CrmDashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Create Ticket Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Headphones className="h-4 w-4" />
+              Raise Support Ticket
+            </DialogTitle>
+            <DialogDescription>
+              Describe your issue. Our team will respond within 24 hours.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject *</Label>
+              <Input
+                id="subject"
+                value={createForm.subject}
+                onChange={(e) => setCreateForm({...createForm, subject: e.target.value})}
+                placeholder="e.g. Unable to add leads from WhatsApp"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="issue">Issue Details *</Label>
+              <Textarea
+                id="issue"
+                value={createForm.issue}
+                onChange={(e) => setCreateForm({...createForm, issue: e.target.value})}
+                placeholder="Please describe your issue in detail..."
+                rows={4}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select value={createForm.priority} onValueChange={(v) => setCreateForm({...createForm, priority: v as any})}>
+                <SelectTrigger id="priority">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateTicket} disabled={submitting}>
+              {submitting ? 'Creating...' : 'Create Ticket'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
