@@ -13,5 +13,5 @@ Dynamic % | Green/Red | Responsive 3-col layout
 
 **Tested:** Scales dynamically, correct colors, alongside Plan pie + Overview.
 
-Task ✅ done.
+Task ✅ COMPLETE: Added Total (grey slice) to pie.
 

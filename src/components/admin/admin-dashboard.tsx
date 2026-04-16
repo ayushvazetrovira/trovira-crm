@@ -96,10 +96,12 @@ export function AdminDashboard() {
     ? [
         { name: 'Active', value: data.activeSubscriptions },
         { name: 'Expired', value: data.expiredSubscriptions },
-      ].filter(item => item.value > 0)
+        { name: 'Total', value: data.totalSubscriptions },
+      ]
     : [];
 
-  const subscriptionStatusColors = ['#10b981', '#ef4444']; // green, red
+
+  const subscriptionStatusColors = ['#10b981', '#ef4444', '#6b7280']; // green, red, grey
 
   if (error) {
     return (
@@ -223,7 +225,8 @@ export function AdminDashboard() {
                     outerRadius={100}
                     paddingAngle={4}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={false}
+
                   >
                     {planChartData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

@@ -14,8 +14,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Download, IndianRupee, FileText } from 'lucide-react';
-import jsPDF from 'jspdf';
+import { Download, IndianRupee } from 'lucide-react';
 
 interface PaymentItem {
   id: string;
@@ -89,39 +88,9 @@ export function AdminPayments() {
       month: 'short',
       year: 'numeric',
     });
-  const handleDownloadReport = async () => {
-    try {
-      const res = await fetch('/api/admin/payments/report');
-      if (!res.ok) throw new Error('Report failed');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'payments-report.pdf';
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      alert('Report download failed');
-    }
   };
 
-
-const handleDownloadInvoice = async (payment: PaymentItem) => {
-    const invoiceContent = [
-      'TROVIRA CRM',
-      'Payment Invoice',
-      '========================',
-      `Invoice ID: ${payment.id}`,
-      `Date: ${formatDate(payment.paymentDate)}`,
-      `Company: ${payment.company.name}`,
-      `Plan: ${payment.plan.name}`,
-      `Amount: ₹${payment.amount.toLocaleString('en-IN')}`,
-      `Method: ${payment.method}`,
-      `Status: ${payment.status}`,
-      '========================',
-      'Thank you for your business!',
-    ].join('\n');
-
+  const handleDownloadInvoice = async (payment: PaymentItem) => {
     try {
       const res = await fetch(`/api/admin/payments/${payment.id}/invoice`);
       if (!res.ok) {
@@ -195,13 +164,7 @@ const handleDownloadInvoice = async (payment: PaymentItem) => {
       {/* Payments Table */}
       <Card className="border-neutral-200 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2 justify-between">
-            Payment History
-            <Button variant="outline" size="sm" onClick={handleDownloadReport} className="gap-2">
-              <FileText className="h-4 w-4" />
-              Download Report PDF
-            </Button>
-          </CardTitle>
+          <CardTitle className="text-base font-semibold">Payment History</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <ScrollArea className="max-h-[calc(100vh-340px)]">

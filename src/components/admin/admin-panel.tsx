@@ -32,7 +32,7 @@ import { AdminDashboard } from './admin-dashboard';
 import { AdminClients } from './admin-clients';
 import { AdminSubscriptions } from './admin-subscriptions';
 import { AdminPlans } from './admin-plans';
-import { AdminPayments } from './admin-payments';
+import { AdminPayments } from './admin-payments-updated';
 import { AdminSupport } from './admin-support';
 import { AdminSettings } from './admin-settings';
 
