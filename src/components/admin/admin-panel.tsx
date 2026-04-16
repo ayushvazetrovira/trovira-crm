@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAppStore, AdminPage } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -177,13 +177,28 @@ function NotificationsPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
+interface SearchResult {
+  id: string;
+  title: string;
+  category: string;
+  page: string;
+}
+
 export function AdminPanel() {
   const { user, adminPage, setAdminPage, notifications, showNotifications, setShowNotifications } = useAppStore();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const renderPage = () => {
+  const handleSearchResultClick = useCallback((result: SearchResult) => {
+    setAdminPage(result.page as any);
+    setSearchQuery('');
+    setSearchResults([]);
+  }, [setAdminPage]);
+
+  const renderPage = useCallback(() => {
     switch (adminPage) {
       case 'dashboard': return <AdminDashboard />;
       case 'clients': return <AdminClients />;
@@ -194,7 +209,27 @@ export function AdminPanel() {
       case 'settings': return <AdminSettings />;
       default: return <AdminDashboard />;
     }
-  };
+  }, [adminPage]);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    if (searchQuery.length > 1) {
+      timeoutId = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/admin/search?q=${encodeURIComponent(searchQuery)}`);
+          if (res.ok) {
+            const results = await res.json();
+            setSearchResults(results);
+          }
+        } catch {
+          setSearchResults([]);
+        }
+      }, 300);
+    } else {
+      setSearchResults([]);
+    }
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
 
   const handleNavigate = (page: AdminPage) => {
     setAdminPage(page);
@@ -242,9 +277,21 @@ export function AdminPanel() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search..."
-                className="pl-9 pr-4 py-2 w-64 bg-slate-100 border-0 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:bg-white"
+                placeholder="Search clients, tickets, plans..."
+                className="pl-9 pr-4 py-2 w-80 bg-slate-100 border-0 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:bg-white"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
+              {searchResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-96 overflow-auto z-50">
+                  {searchResults.map((result) => (
+                    <div key={result.id} className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0" onClick={() => handleSearchResultClick(result)}>
+                      <div className="font-medium text-sm">{result.title}</div>
+                      <div className="text-xs text-gray-500 truncate">{result.category}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-3">

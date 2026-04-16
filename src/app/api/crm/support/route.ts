@@ -33,11 +33,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const companyId = searchParams.get('companyId');
+    // Try header first (CRM frontend), then query param, then body
+    let companyId = request.headers.get('x-company-id') || 
+                    new URL(request.url).searchParams.get('companyId') ||
+                    (await request.json()).companyId;
 
     if (!companyId) {
-      return NextResponse.json({ error: 'companyId is required' }, { status: 400 });
+      return NextResponse.json({ error: 'companyId is required (header: x-company-id or query: ?companyId= or body.companyId)' }, { status: 400 });
     }
 
     const body = await request.json();

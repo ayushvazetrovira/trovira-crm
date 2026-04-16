@@ -92,6 +92,15 @@ export function AdminDashboard() {
     ? Object.entries(data.planDistribution).map(([name, value]) => ({ name, value }))
     : [];
 
+  const subscriptionStatusData = data
+    ? [
+        { name: 'Active', value: data.activeSubscriptions },
+        { name: 'Expired', value: data.expiredSubscriptions },
+      ].filter(item => item.value > 0)
+    : [];
+
+  const subscriptionStatusColors = ['#10b981', '#ef4444']; // green, red
+
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -146,7 +155,53 @@ export function AdminDashboard() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Subscription Status - NEW */}
+        <Card className="border-neutral-200 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold text-neutral-900">Subscription Status</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {loading ? (
+              <div className="flex items-center justify-center h-64">
+                <Skeleton className="h-64 w-64 rounded-full" />
+              </div>
+            ) : subscriptionStatusData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={subscriptionStatusData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={2}
+                    dataKey="value"
+                    nameKey="name"
+                  >
+                    {subscriptionStatusData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={subscriptionStatusColors[index % subscriptionStatusColors.length]} 
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={36}
+                    formatter={(value) => <span className="text-xs text-neutral-600 font-medium">{value}</span>}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-64 text-neutral-400">
+                No subscription status data
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Plan Distribution */}
         <Card className="border-neutral-200 shadow-sm">
           <CardHeader className="pb-2">
