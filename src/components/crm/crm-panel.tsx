@@ -51,7 +51,7 @@ import { CrmFollowups } from './crm-followups';
 import { CrmTasks } from './crm-tasks';
 import { CrmTeam } from './crm-team';
 import { CrmReports } from './crm-reports';
-import { CrmBroadcast } from './crm-broadcast';
+
 import { CrmAutomation } from './crm-automation';
 import { CrmEmail } from './crm-email';
 import { CrmWhatsapp } from './crm-whatsapp';
@@ -67,7 +67,7 @@ const navItems: { icon: React.ElementType; label: string; page: CrmPage; section
   { icon: ListTodo, label: 'Tasks', page: 'tasks' },
   { icon: UserCog, label: 'Team', page: 'team' },
   { icon: BarChart3, label: 'Reports', page: 'reports' },
-  { icon: Megaphone, label: 'Broadcast', page: 'broadcast' },
+
   { icon: Bot, label: 'Automation', page: 'automation' },
   { icon: Mail, label: 'Email', page: 'email', section: 'integrations' },
   { icon: MessageCircle, label: 'WhatsApp Inbox', page: 'whatsapp', section: 'integrations' },
@@ -302,8 +302,7 @@ export function CrmPanel() {
         return <CrmTeam />;
       case 'reports':
         return <CrmReports />;
-      case 'broadcast':
-        return <CrmBroadcast />;
+
       case 'automation':
         return <CrmAutomation />;
       case 'email':

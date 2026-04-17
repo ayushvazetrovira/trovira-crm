@@ -1,11 +1,11 @@
-# CRM Ticket Creation Fix - COMPLETED ✅
+me y l# Remove Broadcast Section from User Login Section
 
-## Final Results:
-1. ✅ Created TODO.md for tracking
-2. ✅ Fixed `src/app/api/crm/support/route.ts` POST to accept `x-company-id` header + fallbacks
-3. ✅ Verified: CRM tickets now create successfully and visible in admin support
-4. ✅ Task completed
-
-**All issues fixed.** Tickets created in user (CRM) login are now fully visible and manageable in admin login.
+## Steps:
+- [x] 1. Update src/components/crm/crm-panel.tsx: Remove broadcast nav item, import, and render case
+- [ ] 1. Update src/components/crm/crm-panel.tsx: Remove broadcast nav item, import, and render case
+- [ ] 2. Update src/lib/store.ts: Remove 'broadcast' from CrmPage type
+- [ ] 3. Rerun dev server to test
+- [ ] 4. Test: Login as CRM user, verify no Broadcast in sidebar, other pages work
+- [ ] 5. Mark complete
 
 
