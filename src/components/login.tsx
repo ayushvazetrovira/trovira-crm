@@ -31,7 +31,7 @@ export function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Logo & Title */}
         <div className="text-center space-y-2">
-          <img src="/logo.jpg" alt="Trovira Logo" className="mx-auto h-16 w-16 mb-4" />
+
           <h1 className="text-3xl font-bold tracking-tight">Trovira CRM</h1>
           <p className="text-muted-foreground">Multi-Tenant SaaS Customer Relationship Management</p>
         </div>
@@ -39,8 +39,7 @@ export function LoginPage() {
         {/* Login Form */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Sign In</CardTitle>
-            <CardDescription>Enter your credentials to access the CRM</CardDescription>
+
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">

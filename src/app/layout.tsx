@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   keywords: ["CRM", "Trovira", "SaaS", "Lead Management", "Customer Relationship Management"],
   authors: [{ name: "Z.ai Team" }],
   icons: {
-    icon: "/logo.jpg",
+    icon: "/logo.jpg", // Dynamic favicon not supported in metadata, static fallback
   },
   openGraph: {
     title: "Trovira CRM",

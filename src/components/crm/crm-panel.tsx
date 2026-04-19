@@ -65,8 +65,9 @@ const navItems: { icon: React.ElementType; label: string; page: CrmPage; section
   { icon: Kanban, label: 'Pipeline', page: 'pipeline' },
   { icon: Clock, label: 'Follow-ups', page: 'followups' },
   { icon: ListTodo, label: 'Tasks', page: 'tasks' },
-  { icon: UserCog, label: 'Team', page: 'team' },
+{ icon: UserCog, label: 'Team', page: 'team' },
   { icon: BarChart3, label: 'Reports', page: 'reports' },
+
 
   { icon: Bot, label: 'Automation', page: 'automation' },
   { icon: Mail, label: 'Email', page: 'email', section: 'integrations' },
@@ -164,7 +165,8 @@ function SidebarContent({
   plan: Plan | null;
   planLoading: boolean;
 }) {
-  const mainItems = navItems.filter(i => !i.section);
+const mainItems = navItems.filter(i => !i.section && (!isTeamMember || i.page !== 'team'));
+
   const integrationItems = navItems.filter(i => i.section === 'integrations');
 
   return (
@@ -252,7 +254,9 @@ function SidebarContent({
 }
 
 export function CrmPanel() {
-  const { user, crmPage, setCrmPage, logout, notifications, showNotifications, setShowNotifications } = useAppStore();
+const { user, crmPage, setCrmPage, logout, notifications, showNotifications, setShowNotifications, isTeamMember } = useAppStore();
+
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [addLeadTrigger, setAddLeadTrigger] = useState(false);
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -296,11 +300,12 @@ export function CrmPanel() {
         return <CrmPipeline />;
       case 'followups':
         return <CrmFollowups />;
-      case 'tasks':
+case 'tasks':
         return <CrmTasks />;
       case 'team':
-        return <CrmTeam />;
+        return isTeamMember ? <div className="p-8 text-center text-gray-500">Team section not available for team members.</div> : <CrmTeam />;
       case 'reports':
+
         return <CrmReports />;
 
       case 'automation':

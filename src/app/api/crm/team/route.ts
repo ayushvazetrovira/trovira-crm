@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         email,
         name,
         password,
-        role: role || 'client',
+role: role || 'team_agent',
       },
     });
 

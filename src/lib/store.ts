@@ -35,6 +35,10 @@ interface AppState {
   // Navigation
   adminPage: AdminPage;
   crmPage: CrmPage;
+  isTeamMember: boolean;
+
+  // Branding
+  customLogo: string | null;
 
   // Notifications
   notifications: Notification[];
@@ -45,22 +49,29 @@ interface AppState {
   logout: () => void;
   setAdminPage: (page: AdminPage) => void;
   setCrmPage: (page: CrmPage) => void;
+  setIsTeamMember: (isTeamMember: boolean) => void;
   setLoading: (loading: boolean) => void;
   setShowNotifications: (show: boolean) => void;
+  setCustomLogo: (filename: string | null) => void;
   markNotificationRead: (id: string) => void;
   addNotification: (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  user: null,
+user: null,
   isAuthenticated: false,
   isLoading: false,
+
   adminPage: 'dashboard',
   crmPage: 'dashboard',
+  isTeamMember: false,
+  customLogo: null,
   notifications: [
-    { id: '1', title: 'Welcome!', message: 'Welcome to Trovira CRM. Get started by exploring the dashboard.', type: 'info', read: false, createdAt: new Date().toISOString() },
-    { id: '2', title: 'New Lead Added', message: 'A new lead was captured from WhatsApp.', type: 'success', read: false, createdAt: new Date().toISOString() },
-    { id: '3', title: 'Follow-up Reminder', message: 'You have follow-ups scheduled for today.', type: 'warning', read: false, createdAt: new Date().toISOString() },
+{ id: '1', title: 'Welcome!', message: 'Welcome to Trovira CRM. Get started by exploring the dashboard.', type: 'info', read: false, createdAt: '2024-01-01T00:00:00Z' },
+    { id: '2', title: 'New Lead Added', message: 'A new lead was captured from WhatsApp.', type: 'success', read: false, createdAt: '2024-01-02T00:00:00Z' },
+
+    { id: '3', title: 'Follow-up Reminder', message: 'You have follow-ups scheduled for today.', type: 'warning', read: false, createdAt: '2024-01-03T00:00:00Z' },
+
   ],
   showNotifications: false,
 
@@ -86,13 +97,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   logout: () => {
-    set({ user: null, isAuthenticated: false, adminPage: 'dashboard', crmPage: 'dashboard' });
+    set({ user: null, isAuthenticated: false, adminPage: 'dashboard', crmPage: 'dashboard', isTeamMember: false });
   },
 
   setAdminPage: (page) => set({ adminPage: page }),
   setCrmPage: (page) => set({ crmPage: page }),
+  setIsTeamMember: (isTeamMember) => set({ isTeamMember }),
   setLoading: (loading) => set({ isLoading: loading }),
   setShowNotifications: (show) => set({ showNotifications: show }),
+  setCustomLogo: (filename) => set({ customLogo: filename }),
   markNotificationRead: (id) => {
     set({ notifications: get().notifications.map(n => n.id === id ? { ...n, read: true } : n) });
   },
@@ -106,3 +119,4 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ notifications: [newNotification, ...get().notifications] });
   },
 }));
+

@@ -34,6 +34,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       user: {
         id: user.id,
+        isTeamMember: user.role.startsWith('team_'),
+
         email: user.email,
         name: user.name,
         role: user.role,
