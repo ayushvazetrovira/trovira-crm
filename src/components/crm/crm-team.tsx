@@ -103,11 +103,20 @@ export function CrmTeam() {
     setSaving(true);
 
     try {
+      const roleMap = {
+        'Admin': 'team_admin',
+        'Manager': 'team_manager',
+        'Agent': 'team_agent',
+        'Viewer': 'team_viewer',
+      };
+      const backendRole = roleMap[form.role as keyof typeof roleMap] || 'team_agent';
+
       const res = await fetch('/api/crm/team', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
+          role: backendRole,
           companyId: user?.companyId,
         }),
       });

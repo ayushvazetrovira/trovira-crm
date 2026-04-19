@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type UserRole = 'admin' | 'client';
+export type UserRole = 'admin' | 'client' | 'team_agent' | 'team_manager' | 'team_admin' | 'team_viewer';
 export type AdminPage = 'dashboard' | 'clients' | 'subscriptions' | 'plans' | 'payments' | 'support' | 'settings';
 export type CrmPage = 'dashboard' | 'leads' | 'pipeline' | 'followups' | 'tasks' | 'team' | 'reports' | 'automation' | 'email' | 'whatsapp' | 'api' | 'notes' | 'settings';
 
@@ -9,6 +9,7 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
+  isTeamMember?: boolean;
   companyId?: string;
   companyName?: string;
   planName?: string;
@@ -83,11 +84,16 @@ user: null,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
-      if (res.ok && data.user) {
-        set({ user: data.user, isAuthenticated: true, isLoading: false });
-        return true;
-      }
+        const data = await res.json();
+        if (res.ok && data.user) {
+          set({ 
+            user: data.user, 
+            isAuthenticated: true, 
+            isLoading: false,
+            isTeamMember: data.user.isTeamMember || false
+          });
+          return true;
+        }
       set({ isLoading: false });
       return false;
     } catch {

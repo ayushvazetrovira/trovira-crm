@@ -387,6 +387,10 @@ export function AdminClients() {
       {/* View Client Details Dialog */}
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Client Details</DialogTitle>
+            <DialogDescription>Loading client details...</DialogDescription>
+          </DialogHeader>
           {detailLoading ? (
             <div className="py-8 space-y-4">
               <Skeleton className="h-6 w-48" />
