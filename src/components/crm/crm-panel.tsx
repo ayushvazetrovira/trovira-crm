@@ -165,6 +165,7 @@ function SidebarContent({
   plan: Plan | null;
   planLoading: boolean;
 }) {
+  const { isTeamMember } = useAppStore();
 const mainItems = navItems.filter(i => !i.section && (!isTeamMember || i.page !== 'team'));
 
   const integrationItems = navItems.filter(i => i.section === 'integrations');
