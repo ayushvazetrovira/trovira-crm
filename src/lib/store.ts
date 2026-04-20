@@ -37,6 +37,7 @@ interface AppState {
   adminPage: AdminPage;
   crmPage: CrmPage;
   isTeamMember: boolean;
+  clientFilter: 'all' | 'active' | 'inactive';
 
   // Branding
   customLogo: string | null;
@@ -66,6 +67,7 @@ user: null,
   adminPage: 'dashboard',
   crmPage: 'dashboard',
   isTeamMember: false,
+  clientFilter: 'all',
   customLogo: null,
   notifications: [
 { id: '1', title: 'Welcome!', message: 'Welcome to Trovira CRM. Get started by exploring the dashboard.', type: 'info', read: false, createdAt: '2024-01-01T00:00:00Z' },
@@ -109,6 +111,7 @@ user: null,
   setAdminPage: (page) => set({ adminPage: page }),
   setCrmPage: (page) => set({ crmPage: page }),
   setIsTeamMember: (isTeamMember) => set({ isTeamMember }),
+  setClientFilter: (filter) => set({ clientFilter: filter }),
   setLoading: (loading) => set({ isLoading: loading }),
   setShowNotifications: (show) => set({ showNotifications: show }),
   setCustomLogo: (filename) => set({ customLogo: filename }),

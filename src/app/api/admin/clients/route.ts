@@ -5,8 +5,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
+    const statusParam = searchParams.get('status') || '';
 
-    const where = search
+    const where: any = search
       ? {
           OR: [
             { name: { contains: search } },
@@ -16,6 +17,10 @@ export async function GET(request: NextRequest) {
           ],
         }
       : {};
+
+    if (statusParam) {
+      where.status = statusParam === 'active' ? 'active' : { in: ['inactive', 'suspended'] };
+    }
 
     const companies = await db.company.findMany({
       where,

@@ -86,14 +86,28 @@ export async function DELETE(
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
-    // Suspend the company instead of hard delete
-    const suspended = await db.company.update({
-      where: { id },
-      data: { status: 'suspended' },
-      include: { plan: true },
+    await db.$transaction(async (tx) => {
+      // Delete all related records
+      await tx.lead.deleteMany({ where: { companyId: id } });
+      await tx.followup.deleteMany({ where: { companyId: id } });
+      await tx.note.deleteMany({ where: { companyId: id } });
+      await tx.crmTask.deleteMany({ where: { companyId: id } });
+      await tx.broadcast.deleteMany({ where: { companyId: id } });
+      await tx.automationRule.deleteMany({ where: { companyId: id } });
+      await tx.crmEmail.deleteMany({ where: { companyId: id } });
+      await tx.whatsAppContact.deleteMany({ where: { companyId: id } });
+      await tx.webhook.deleteMany({ where: { companyId: id } });
+      await tx.crmSetting.deleteMany({ where: { companyId: id } });
+      await tx.user.deleteMany({ where: { companyId: id } });
+      await tx.subscription.deleteMany({ where: { companyId: id } });
+      await tx.payment.deleteMany({ where: { companyId: id } });
+      await tx.supportTicket.deleteMany({ where: { companyId: id } });
+
+      // Delete company
+      await tx.company.delete({ where: { id } });
     });
 
-    return NextResponse.json({ message: 'Company suspended', company: suspended });
+    return NextResponse.json({ message: 'Company and all data deleted permanently' });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });

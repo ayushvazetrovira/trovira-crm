@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, UserCheck, UserX, DollarSign, Target } from 'lucide-react';
@@ -26,15 +27,20 @@ function StatCard({
   icon: Icon,
   description,
   color,
+  onClick,
 }: {
   title: string;
   value: string | number;
   icon: React.ElementType;
   description?: string;
   color: string;
+  onClick?: () => void;
 }) {
   return (
-    <Card className="border-neutral-200 shadow-sm hover:shadow-md transition-shadow">
+    <Card 
+      className={`border-neutral-200 shadow-sm hover:shadow-lg transition-all cursor-pointer ${onClick ? 'hover:shadow-md hover:-translate-y-0.5' : 'hover:shadow-md'}`}
+      onClick={onClick}
+    >
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
@@ -124,6 +130,7 @@ export function AdminDashboard() {
               value={data.totalClients}
               icon={Users}
               color="bg-neutral-800"
+              onClick={() => useAppStore.getState().setAdminPage('clients')}
             />
             <StatCard
               title="Active Clients"
@@ -131,6 +138,7 @@ export function AdminDashboard() {
               icon={UserCheck}
               description={`${Math.round((data.activeClients / Math.max(data.totalClients, 1)) * 100)}% of total`}
               color="bg-emerald-600"
+              onClick={() => useAppStore.getState().setClientFilter('active')}
             />
             <StatCard
               title="Inactive / Suspended"

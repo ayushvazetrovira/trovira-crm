@@ -14,7 +14,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
     }
 
-    const { name, price, userLimit, leadLimit, isActive } = body;
+    const { name, price, userLimit, leadLimit, isActive, features } = body;
 
     const updated = await db.plan.update({
       where: { id },
@@ -24,8 +24,18 @@ export async function PUT(
         ...(userLimit !== undefined && { userLimit }),
         ...(leadLimit !== undefined && { leadLimit }),
         ...(isActive !== undefined && { isActive }),
+        ...(features !== undefined && { features }),
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        userLimit: true,
+        leadLimit: true,
+        isActive: true,
+        features: true,
+        createdAt: true,
+        updatedAt: true,
         _count: {
           select: { companies: true, subscriptions: true, payments: true },
         },

@@ -15,6 +15,7 @@ import {
 import { Users, Target, Package, CheckCircle2, Star, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 
 interface PlanItem {
   id: string;
@@ -23,6 +24,7 @@ interface PlanItem {
   userLimit: number;
   leadLimit: number;
   isActive: boolean;
+  features: string | null;
   createdAt: string;
   updatedAt: string;
   _count: { companies: number; subscriptions: number; payments: number };
@@ -50,7 +52,7 @@ export function AdminPlans() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({ name: '', price: 0, userLimit: 0, leadLimit: 0, isActive: false });
+  const [formData, setFormData] = useState({ name: '', price: 0, userLimit: 0, leadLimit: 0, isActive: false, features: [] as string[] });
 
   const fetchPlans = useCallback(async () => {
     try {
@@ -66,6 +68,7 @@ export function AdminPlans() {
           userLimit: activePlan.userLimit,
           leadLimit: activePlan.leadLimit,
           isActive: activePlan.isActive,
+          features: activePlan.features ? JSON.parse(activePlan.features) : troviraPlanFeatures,
         });
       }
     } catch {
@@ -79,14 +82,26 @@ export function AdminPlans() {
     if (!plan) return;
     setSaving(true);
     try {
+      const saveData = {
+        ...formData,
+        features: JSON.stringify(formData.features),
+      };
       const res = await fetch(`/api/admin/plans/${plan.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(saveData),
       });
       if (!res.ok) throw new Error('Failed to save');
       const updatedPlan = await res.json();
       setPlan(updatedPlan);
+      setFormData({
+        name: updatedPlan.name,
+        price: updatedPlan.price,
+        userLimit: updatedPlan.userLimit,
+        leadLimit: updatedPlan.leadLimit,
+        isActive: updatedPlan.isActive,
+        features: updatedPlan.features ? JSON.parse(updatedPlan.features) : troviraPlanFeatures,
+      });
       toast.success('Plan updated successfully');
       setEditing(false);
     } catch {
@@ -108,13 +123,15 @@ export function AdminPlans() {
     );
   }
 
-  if (!plan) {
-    return (
-      <div className="flex items-center justify-center h-64 text-neutral-400">
-        No plan configured
-      </div>
-    );
-  }
+    if (!plan) {
+      return (
+        <div className="flex items-center justify-center h-64 text-neutral-400">
+          No plan configured
+        </div>
+      );
+    }
+
+    const displayFeatures = plan.features ? JSON.parse(plan.features) : troviraPlanFeatures;
 
   return (
     <div className="space-y-6">
@@ -214,6 +231,25 @@ export function AdminPlans() {
                       className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                       min="0"
                     />
+                  </div>
+                  <div className="space-y-3 p-4 bg-white/80 rounded-xl border col-span-2">
+                    <label className="text-xs font-semibold text-gray-700 block mb-1">Features (JSON array)</label>
+                    <Textarea
+                      value={JSON.stringify(formData.features, null, 2)}
+                      onChange={(e) => {
+                        try {
+                          const feats = JSON.parse(e.target.value);
+                          if (Array.isArray(feats)) {
+                            setFormData({...formData, features: feats});
+                          }
+                        } catch {
+                          // Invalid JSON, ignore
+                        }
+                      }}
+                      className="w-full text-xs font-mono min-h-[150px] resize-vertical"
+                      placeholder={JSON.stringify(troviraPlanFeatures.slice(0,3), null, 2)}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">["Feature 1", "Feature 2", ...]</p>
                   </div>
                   <div className="space-y-3 p-4 bg-white/80 rounded-xl border">
                     <label className="text-xs font-semibold text-gray-700 block mb-1">Active</label>

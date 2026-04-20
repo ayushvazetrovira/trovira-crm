@@ -84,7 +84,7 @@ function SidebarContent({
         />
         {!collapsed && (
           <div className="min-w-0">
-            <h2 className="font-bold text-base text-white truncate">Trovira</h2>
+            <h2 className="font-bold text-base text-white truncate">Trovira CRM</h2>
             <p className="text-xs text-slate-400">Super Admin Panel</p>
           </div>
         )}

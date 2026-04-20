@@ -26,8 +26,15 @@ import {
 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Search, Plus, Eye, Trash2, Phone, Mail, Building2, Calendar } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Search, Plus, Eye, MoreVertical, Phone, Mail, Building2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAppStore } from '@/lib/store';
 
 interface Plan {
   id: string;
@@ -87,6 +94,7 @@ export function AdminClients() {
   const [clients, setClients] = useState<ClientCompany[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const clientFilter = useAppStore((state) => state.clientFilter);
   const [addOpen, setAddOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<ClientDetail | null>(null);
@@ -106,7 +114,11 @@ export function AdminClients() {
 
   const fetchClients = useCallback(async () => {
     try {
-      const res = await fetch(`/api/admin/clients?search=${encodeURIComponent(search)}`);
+      let url = `/api/admin/clients?search=${encodeURIComponent(search)}`;
+      if (clientFilter !== 'all') {
+        url += `&status=${clientFilter}`;
+      }
+      const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to load clients');
       const json = await res.json();
       setClients(json);
@@ -115,7 +127,7 @@ export function AdminClients() {
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [search, clientFilter]);
 
   useEffect(() => {
     setLoading(true);
@@ -173,16 +185,39 @@ export function AdminClients() {
     }
   };
 
-  const handleSuspendClient = async (id: string) => {
+  const handleSuspend = async (id: string) => {
+    const client = clients.find(c => c.id === id);
+    if (!client) return;
+    if (!confirm(`Suspend ${client.name}?`)) return;
+    toast.loading('Suspending...');
     try {
       const res = await fetch(`/api/admin/clients/${id}`, {
-        method: 'DELETE',
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'suspended' }),
       });
-      if (!res.ok) throw new Error('Failed to suspend client');
-      toast.success('Client suspended successfully');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to suspend');
+      toast.success('Client suspended');
       fetchClients();
-    } catch {
-      toast.error('Failed to suspend client');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to suspend');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const client = clients.find(c => c.id === id);
+    if (!client) return;
+    if (!confirm(`Delete ${client.name} permanently? All data lost.`)) return;
+    toast.loading('Deleting...');
+    try {
+      const res = await fetch(`/api/admin/clients/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete');
+      toast.success('Client deleted permanently');
+      fetchClients();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete');
     }
   };
 
@@ -268,15 +303,24 @@ export function AdminClients() {
                           >
                             <Eye className="h-4 w-4 text-neutral-500" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 hover:bg-red-50"
-                            onClick={() => handleSuspendClient(client.id)}
-                            title="Suspend Client"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleSuspend(client.id)}>
+                                Suspend Client
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                                onClick={() => handleDelete(client.id)}
+                              >
+                                Delete Client
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>

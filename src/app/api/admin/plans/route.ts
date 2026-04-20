@@ -4,7 +4,16 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     const plans = await db.plan.findMany({
-      include: {
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        userLimit: true,
+        leadLimit: true,
+        isActive: true,
+        features: true,
+        createdAt: true,
+        updatedAt: true,
         _count: {
           select: { companies: true, subscriptions: true, payments: true },
         },

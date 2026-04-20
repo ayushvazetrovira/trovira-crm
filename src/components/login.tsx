@@ -30,10 +30,16 @@ export function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Logo & Title */}
-        <div className="text-center space-y-2">
-
-          <h1 className="text-3xl font-bold tracking-tight">Trovira CRM</h1>
-          <p className="text-muted-foreground">Multi-Tenant SaaS Customer Relationship Management</p>
+        <div className="text-center space-y-4">
+          <img 
+            src="/logo.jpg" 
+            alt="Trovira CRM" 
+            className="mx-auto h-16 w-16 rounded-xl object-contain bg-white/20 p-2 shadow-lg"
+          />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Trovira CRM</h1>
+            <p className="text-muted-foreground text-sm">Multi-Tenant SaaS Customer Relationship Management</p>
+          </div>
         </div>
 
         {/* Login Form */}
