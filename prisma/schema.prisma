@@ -206,20 +206,25 @@ model CrmTask {
   company       Company   @relation(fields: [companyId], references: [id])
 }
 
-model Broadcast {
-  id            String    @id @default(cuid())
-  companyId     String
-  name          String
-  message       String
-  recipients    Int       @default(0)
-  status        String    @default("draft") // draft, sent, delivered, queued, failed
-  delivered      Int       @default(0)
-  readCount     Int       @default(0)
-  failed        Int       @default(0)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+model BroadcastMessage {
+  id             String    @id @default(cuid())
+  companyId      String
+  campaignName   String?
+  recipientName  String?
+  recipientPhone String
+  status         String
+  sentAt         DateTime  @default(now())
+  deliveredAt    DateTime?
+  readAt         DateTime?
+  failedAt       DateTime?
+  failureReason  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  company       Company   @relation(fields: [companyId], references: [id])
+  company        Company   @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+  @@index([sentAt])
 }
 
 model AutomationRule {
@@ -313,3 +318,8 @@ model CrmSetting {
 
   company       Company   @relation(fields: [companyId], references: [id])
 }
+
+model BroadcastMessage {
+  
+}
+

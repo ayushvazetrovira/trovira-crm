@@ -12,13 +12,13 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q')?.trim().toLowerCase();
-    
+
     if (!q || q.length < 2) {
       return NextResponse.json([]);
     }
 
     // Parallel searches
-    const [clients, tickets, plans, subscriptions] = await Promise.all([
+    const [clients, tickets, plans, subscriptions, payments] = await Promise.all([
       db.company.findMany({
         where: {
           OR: [
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
           ],
         },
         select: { id: true, name: true },
-        take: 5,
+        take: 3,
       }),
       db.supportTicket.findMany({
         where: {
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
           ],
         },
         include: { company: { select: { name: true } } },
-        take: 5,
+        take: 3,
       }),
       db.plan.findMany({
         where: {
@@ -48,15 +48,30 @@ export async function GET(request: NextRequest) {
           ],
         },
         select: { id: true, name: true },
-        take: 3,
+        take: 2,
       }),
       db.subscription.findMany({
         where: {
-          id: { contains: q }
+          OR: [
+            { id: { contains: q } },
+          ],
         },
-        include: { 
+        include: {
           company: { select: { name: true } },
-          plan: { select: { name: true } }
+          plan: { select: { name: true } },
+        },
+        take: 2,
+      }),
+      // ✅ FIXED: removed `select` — use `include` only, pick fields manually
+      db.payment.findMany({
+        where: {
+          OR: [
+            { id: { contains: q } },
+            { company: { name: { contains: q, mode: 'insensitive' } } },
+          ],
+        },
+        include: {
+          company: { select: { name: true } },
         },
         take: 3,
       }),
@@ -66,12 +81,12 @@ export async function GET(request: NextRequest) {
 
     // Format clients
     clients.forEach((client) => {
-        results.push({
-          id: client.id,
-          title: client.name,
-          category: 'Client',
-          page: 'clients',
-        });
+      results.push({
+        id: client.id,
+        title: client.name,
+        category: 'Client',
+        page: 'clients',
+      });
     });
 
     // Format tickets
@@ -104,10 +119,19 @@ export async function GET(request: NextRequest) {
       });
     });
 
+    // Format payments
+    payments.forEach((pay) => {
+      results.push({
+        id: pay.id,
+        title: `${pay.company.name} - ₹${pay.amount}`,
+        category: `Payment (${pay.method})`,
+        page: 'payments',
+      });
+    });
+
     return NextResponse.json(results.slice(0, 10));
   } catch (error: unknown) {
     console.error('Search error:', error);
     return NextResponse.json([]);
   }
 }
-

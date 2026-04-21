@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const users = await db.user.findMany({
       where: {
         companyId,
-        role: { not: 'admin' },
+        role: { notIn: ['admin', 'client', 'inactive_client'] },
       },
       orderBy: { createdAt: 'desc' },
       select: {
@@ -28,18 +28,15 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Compute approximate tasks assigned per user
+    const totalMembers = users.length || 1;
+    const totalLeads = await db.lead.count({ where: { companyId } });
+
     const usersWithStats = await Promise.all(
       users.map(async (user) => {
         const tasksAssigned = await db.crmTask.count({
           where: { companyId, assignedTo: user.name },
         });
 
-        // Approximate leads managed: total leads / number of team members
-        const totalMembers = users.length || 1;
-        const totalLeads = await db.lead.count({
-          where: { companyId },
-        });
         const leadsManaged = Math.round(totalLeads / totalMembers);
 
         return {
@@ -63,37 +60,120 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { companyId, email, name, password, role, phone } = body;
+    const { companyId, bulk, email, name, password, role } = body;
 
-    if (!companyId || !email || !name || !password) {
+    if (!companyId) {
+      return NextResponse.json({ error: 'companyId is required' }, { status: 400 });
+    }
+
+    // ── Bulk create from Excel ────────────────────────────────────────
+    if (bulk) {
+      if (!Array.isArray(bulk.members)) {
+        return NextResponse.json({ error: 'bulk.members array required' }, { status: 400 });
+      }
+
+      const created: { email: string; name: string }[] = [];
+      const errors: { row: number; error: string; email?: string }[] = [];
+
+      for (let i = 0; i < bulk.members.length; i++) {
+        const row = bulk.members[i];
+
+        const rowName = row.name?.trim() ?? '';
+        const finalName =
+          !rowName || rowName.toLowerCase() === 'mt'
+            ? `Team Member ${i + 1}`
+            : rowName;
+
+        // FIX: accept both lowercase `email` (new) and `Email` (legacy) 
+        const rowEmail = (row.email ?? row.Email ?? '').toString().trim();
+        const rowPassword = (row.password ?? '').toString().trim();
+
+        if (!rowEmail || !rowPassword) {
+          errors.push({ row: i + 1, error: 'Email and password required' });
+          continue;
+        }
+
+        // Check duplicate email
+        const existing = await db.user.findUnique({ where: { email: rowEmail } });
+        if (existing) {
+          errors.push({ row: i + 1, email: rowEmail, error: 'Email already exists' });
+          continue;
+        }
+
+        try {
+          await db.user.create({
+            data: {
+              companyId,
+              email: rowEmail,
+              name: finalName,
+              password: rowPassword,
+              role: 'team_agent',
+            },
+          });
+          created.push({ email: rowEmail, name: finalName });
+        } catch (err) {
+          console.error(`Row ${i + 1} create error:`, err);
+          errors.push({ row: i + 1, email: rowEmail, error: 'Failed to create' });
+        }
+      }
+
+      return NextResponse.json(
+        {
+          success: true,
+          createdCount: created.length,
+          created,
+          errors,
+        },
+        { status: 201 }
+      );
+    }
+
+    // ── Single create ─────────────────────────────────────────────────
+    if (!email || !name || !password) {
       return NextResponse.json(
         { error: 'companyId, email, name, and password are required' },
         { status: 400 }
       );
     }
 
-    // Check if email already exists
     const existing = await db.user.findUnique({ where: { email } });
     if (existing) {
-      return NextResponse.json({ error: 'A user with this email already exists' }, { status: 409 });
+      return NextResponse.json(
+        { error: 'A user with this email already exists' },
+        { status: 409 }
+      );
     }
 
-    const user = await db.user.create({
+    const roleMap: Record<string, string> = {
+      team_admin: 'team_admin',
+      team_manager: 'team_manager',
+      team_agent: 'team_agent',
+      team_viewer: 'team_viewer',
+    };
+    const assignedRole = roleMap[role] ?? 'team_agent';
+
+    const newUser = await db.user.create({
       data: {
         companyId,
         email,
         name,
         password,
-role: role || 'team_agent',
+        role: assignedRole,
       },
     });
 
-    return NextResponse.json({ user, message: 'Team member created successfully' }, { status: 201 });
+    return NextResponse.json(
+      { user: newUser, message: 'Team member created successfully' },
+      { status: 201 }
+    );
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    console.error('Error creating team member:', error);
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
       return NextResponse.json({ error: 'Email already exists' }, { status: 409 });
     }
-    console.error('Error creating team member:', error);
     return NextResponse.json({ error: 'Failed to create team member' }, { status: 500 });
   }
 }
@@ -108,28 +188,19 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'User id is required' }, { status: 400 });
     }
 
-    // Verify user exists
     const existing = await db.user.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const updateData: Prisma.UserUpdateInput = {};
-    if (status !== undefined) {
-      // Map 'active'/'inactive' to User model — we store it as part of the user
-      // Since User model doesn't have a status field, we track active/inactive via role convention
-      // For simplicity, we'll add a comment. The frontend already handles status in-memory.
-      // Actually, we don't have a status field on User. We'll just update role.
-      updateData.role = status === 'inactive' ? 'inactive_client' : 'client';
-    }
     if (role !== undefined) {
       updateData.role = role;
+    } else if (status !== undefined) {
+      updateData.role = status === 'inactive' ? 'inactive_client' : 'team_agent';
     }
 
-    const user = await db.user.update({
-      where: { id },
-      data: updateData,
-    });
+    const user = await db.user.update({ where: { id }, data: updateData });
 
     return NextResponse.json({ user, message: 'Team member updated successfully' });
   } catch (error) {
@@ -148,7 +219,6 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'User id is required' }, { status: 400 });
     }
 
-    // Verify user exists
     const existing = await db.user.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });

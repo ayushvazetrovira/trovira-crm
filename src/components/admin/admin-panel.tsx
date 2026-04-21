@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAppStore, AdminPage } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -17,15 +16,9 @@ import {
   HeadphonesIcon,
   Settings,
   LogOut,
-  Menu,
-  ChevronLeft,
   Bell,
   Search,
   X,
-  Info,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
 } from 'lucide-react';
 
 import { AdminDashboard } from './admin-dashboard';
@@ -46,49 +39,18 @@ const menuItems = [
   { icon: Settings, label: 'Settings', page: 'settings' },
 ] as const;
 
-const notifIcons = {
-  info: Info,
-  success: CheckCircle2,
-  warning: AlertTriangle,
-  error: XCircle,
-};
-
-const notifColors = {
-  info: 'bg-sky-100 text-sky-600',
-  success: 'bg-emerald-100 text-emerald-600',
-  warning: 'bg-amber-100 text-amber-600',
-  error: 'bg-red-100 text-red-600',
-};
-
 function SidebarContent({
-  collapsed,
   onNavigate,
   currentPage,
 }: {
-  collapsed: boolean;
   onNavigate: (page: AdminPage) => void;
   currentPage: AdminPage;
 }) {
-  const customLogo = useAppStore((state) => state.customLogo);
   const logout = useAppStore((state) => state.logout);
-
-  const logoSrc = customLogo ? `/upload/${customLogo}` : '/logo.jpg';
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-4 py-5">
-        <img
-          src={logoSrc}
-          alt="Logo"
-          className="w-9 h-9 rounded-lg shrink-0 object-contain bg-white/20 p-1"
-        />
-        {!collapsed && (
-          <div className="min-w-0">
-            <h2 className="font-bold text-base text-white truncate">Trovira CRM</h2>
-            <p className="text-xs text-slate-400">Super Admin Panel</p>
-          </div>
-        )}
-      </div>
+      <div className="px-4 py-5 text-white font-bold">Trovira CRM</div>
 
       <Separator className="bg-slate-700" />
 
@@ -102,29 +64,27 @@ function SidebarContent({
               <button
                 key={item.page}
                 onClick={() => onNavigate(item.page as AdminPage)}
-                className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm ${
                   isActive
                     ? 'bg-emerald-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    : 'text-slate-300 hover:bg-slate-800'
                 }`}
               >
-                <Icon className="w-5 h-5 shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
+                <Icon className="w-5 h-5" />
+                <span>{item.label}</span>
               </button>
             );
           })}
         </nav>
       </ScrollArea>
 
-      <Separator className="bg-slate-700" />
-
       <div className="p-3">
         <button
           onClick={logout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-red-600/20 hover:text-red-400"
+          className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-red-400 hover:bg-red-600/20 rounded-lg"
         >
-          <LogOut className="w-5 h-5 shrink-0" />
-          {!collapsed && <span>Logout</span>}
+          <LogOut className="w-5 h-5" />
+          <span>Logout</span>
         </button>
       </div>
     </div>
@@ -141,10 +101,9 @@ export function AdminPanel() {
     setShowNotifications,
   } = useAppStore();
 
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [results, setResults] = useState<string[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -161,53 +120,99 @@ export function AdminPanel() {
     }
   }, [adminPage]);
 
-  // ✅ FIXED useEffect (this was breaking your build)
+  // 🔥 DOM SEARCH (works immediately)
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+  if (searchQuery.length < 2) {
+    setResults([]);
+    return;
+  }
 
-    if (searchQuery.length > 1) {
-      timeoutId = setTimeout(async () => {
-        try {
-          const res = await fetch(`/api/admin/search?q=${encodeURIComponent(searchQuery)}`);
-          if (res.ok) {
-            const results = await res.json();
-            setSearchResults(results);
-          }
-        } catch {
-          setSearchResults([]);
-        }
-      }, 300);
-    } else {
-      setSearchResults([]);
+  const q = searchQuery.toLowerCase();
+  const matches: string[] = [];
+
+  // ✅ Target only useful UI content
+  const elements = document.querySelectorAll(
+    'table tbody tr, .card, .grid div, h1, h2, h3, p'
+  );
+
+  elements.forEach((el) => {
+    const text = el.textContent?.replace(/\s+/g, ' ').trim();
+
+    if (
+      text &&
+      text.length < 200 && // avoid huge junk blocks
+      text.toLowerCase().includes(q)
+    ) {
+      matches.push(text);
     }
+  });
 
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  const unique = Array.from(new Set(matches)).slice(0, 8);
+
+  setResults(unique);
+}, [searchQuery, adminPage]);
 
   return (
     <div className="flex h-screen bg-slate-50">
-      <aside className={`hidden lg:flex flex-col bg-slate-900 ${collapsed ? 'w-[68px]' : 'w-[260px]'}`}>
+
+      {/* SIDEBAR */}
+      <aside className="hidden lg:flex flex-col bg-slate-900 w-64">
         <SidebarContent
-          collapsed={collapsed}
           onNavigate={setAdminPage}
           currentPage={adminPage}
         />
       </aside>
 
-      <div className="flex-1 flex flex-col">
-        <header className="h-16 border-b bg-white flex items-center justify-between px-6">
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="border px-3 py-2 rounded"
-          />
+      <div className="flex-1">
 
-          <div className="flex items-center gap-4">
+        {/* HEADER */}
+        <header className="h-16 bg-white border-b flex items-center px-6 relative">
+
+          {/* SEARCH */}
+          <div className="relative w-full max-w-md">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+
+            <input
+              type="text"
+              placeholder="Search anything..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setSearchOpen(true)}
+              className="w-full pl-10 pr-10 py-2 border rounded-lg"
+            />
+
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setResults([]);
+                }}
+                className="absolute right-2 top-2"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* RESULTS */}
+            {results.length > 0 && searchOpen && (
+              <div className="absolute top-12 w-full bg-white shadow-xl rounded-lg z-50">
+                {results.map((r, i) => (
+                  <div
+                    key={i}
+                    className="px-4 py-2 text-sm border-b last:border-none"
+                  >
+                    {r}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT */}
+          <div className="ml-auto flex items-center gap-3">
             <Button onClick={() => setShowNotifications(!showNotifications)}>
-              <Bell />
-              {unreadCount > 0 && <span>{unreadCount}</span>}
+              <Bell className="w-4 h-4" />
+              {unreadCount > 0 && <Badge>{unreadCount}</Badge>}
             </Button>
 
             <Avatar>
@@ -218,7 +223,8 @@ export function AdminPanel() {
           </div>
         </header>
 
-        <main className="flex-1 p-6">
+        {/* CONTENT */}
+        <main className="p-6">
           {renderPage()}
         </main>
       </div>

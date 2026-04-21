@@ -176,7 +176,7 @@ const mainItems = navItems.filter(i => !i.section && (!isTeamMember || i.page !=
         <img src="/logo.jpg" alt="Trovira" className="mb-3 h-12 w-12 rounded-lg object-contain bg-white/20 p-1.5 mx-auto sm:mx-0" />
         <h1 className="text-xl font-bold text-white tracking-tight">Trovira</h1>
         <p className="text-teal-100 text-sm mt-1 truncate">{companyName}</p>
-{planLoading ? (
+{!isTeamMember && (planLoading ? (
           <Badge className="mt-2 bg-white/20 text-white border-0 text-xs">
             Loading Plan...
           </Badge>
@@ -188,7 +188,7 @@ const mainItems = navItems.filter(i => !i.section && (!isTeamMember || i.page !=
           <Badge className="mt-2 bg-white/20 text-white border-0 text-xs" variant="secondary">
             No Active Plan
           </Badge>
-        )}
+        ))}
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 px-3 py-4 sidebar-scroll">
@@ -375,7 +375,7 @@ case 'tasks':
               <h2 className="text-sm font-semibold text-gray-900">{currentPageLabel}</h2>
 <div className="flex items-center gap-2">
                 <p className="text-xs text-gray-500">{user.companyName}</p>
-                {planLoading ? (
+{!isTeamMember && (planLoading ? (
                   <Badge variant="secondary" className="bg-teal-100 text-teal-700 text-[10px] px-1.5 py-0">
                     Loading...
                   </Badge>
@@ -387,7 +387,7 @@ case 'tasks':
                   <Badge variant="secondary" className="bg-orange-100 text-orange-700 text-[10px] px-1.5 py-0">
                     No Plan
                   </Badge>
-                )}
+                ))}
               </div>
             </div>
           </div>
