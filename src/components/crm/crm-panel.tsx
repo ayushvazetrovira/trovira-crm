@@ -58,6 +58,7 @@ import { CrmWhatsapp } from './crm-whatsapp';
 import { CrmApi } from './crm-api';
 import { CrmSettings } from './crm-settings';
 import { CrmNotes } from './crm-notes';
+import { TeamBroadcast } from './team-broadcast';
 
 const navItems: { icon: React.ElementType; label: string; page: CrmPage; section?: string }[] = [
   { icon: LayoutDashboard, label: 'Dashboard', page: 'dashboard' },
@@ -66,7 +67,8 @@ const navItems: { icon: React.ElementType; label: string; page: CrmPage; section
   { icon: Clock, label: 'Follow-ups', page: 'followups' },
   { icon: ListTodo, label: 'Tasks', page: 'tasks' },
 { icon: UserCog, label: 'Team', page: 'team' },
-  { icon: BarChart3, label: 'Reports', page: 'reports' },
+{ icon: BarChart3, label: 'Reports', page: 'reports' },
+  { icon: Megaphone, label: 'Broadcast', page: 'broadcast' },
 
 
   { icon: Bot, label: 'Automation', page: 'automation' },
@@ -321,6 +323,8 @@ case 'tasks':
         return <CrmNotes />;
       case 'settings':
         return <CrmSettings />;
+      case 'broadcast':
+        return <TeamBroadcast />;
       default:
         return <CrmDashboard />;
     }

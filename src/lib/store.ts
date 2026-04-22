@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 export type UserRole = 'admin' | 'client' | 'team_agent' | 'team_manager' | 'team_admin' | 'team_viewer';
 export type AdminPage = 'dashboard' | 'clients' | 'subscriptions' | 'plans' | 'payments' | 'support' | 'settings';
-export type CrmPage = 'dashboard' | 'leads' | 'pipeline' | 'followups' | 'tasks' | 'team' | 'reports' | 'automation' | 'email' | 'whatsapp' | 'api' | 'notes' | 'settings';
+export type CrmPage = 'dashboard' | 'leads' | 'pipeline' | 'followups' | 'tasks' | 'team' | 'reports' | 'broadcast' | 'automation' | 'email' | 'whatsapp' | 'api' | 'notes' | 'settings';
 
 export interface User {
   id: string;
