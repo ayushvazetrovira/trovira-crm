@@ -42,7 +42,7 @@ model Company {
   settings      CrmSetting[]
   notes         Note[]
   tasks         CrmTask[]
-  broadcasts    Broadcast[]
+  broadcasts    BroadcastMessage[]
   automationRules AutomationRule[]
   emails        CrmEmail[]
   whatsappContacts WhatsAppContact[]
@@ -310,6 +310,7 @@ model CrmSetting {
   companyId     String
   businessName  String?
   whatsappNumber String?
+  whatsappSession String?
   logo          String?
   email         String?
   phone         String?
@@ -319,7 +320,5 @@ model CrmSetting {
   company       Company   @relation(fields: [companyId], references: [id])
 }
 
-model BroadcastMessage {
-  
-}
+
 

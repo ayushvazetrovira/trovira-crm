@@ -49,6 +49,7 @@ interface AppState {
   // Actions
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  forgotPassword: (email: string, newPassword: string, confirmPassword: string) => Promise<{ success: boolean; error?: string }>;
   setAdminPage: (page: AdminPage) => void;
   setCrmPage: (page: CrmPage) => void;
   setIsTeamMember: (isTeamMember: boolean) => void;
@@ -106,6 +107,26 @@ user: null,
 
   logout: () => {
     set({ user: null, isAuthenticated: false, adminPage: 'dashboard', crmPage: 'dashboard', isTeamMember: false });
+  },
+
+  forgotPassword: async (email: string, newPassword: string, confirmPassword: string) => {
+    set({ isLoading: true });
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, newPassword, confirmPassword }),
+      });
+      const data = await res.json();
+      set({ isLoading: false });
+      if (res.ok && data.success) {
+        return { success: true };
+      }
+      return { success: false, error: data.error || 'Failed to reset password' };
+    } catch {
+      set({ isLoading: false });
+      return { success: false, error: 'Network error. Please try again.' };
+    }
   },
 
   setAdminPage: (page) => set({ adminPage: page }),
