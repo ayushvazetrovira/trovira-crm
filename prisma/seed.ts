@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+  import { PrismaClient } from '@prisma/client';
+  import { hashPassword } from '../src/lib/auth.js';
 
 const db = new PrismaClient();
 
@@ -48,14 +49,19 @@ async function seed() {
     }
   }
 
+  import { hashPassword } from '../src/lib/auth';
+
   // Create Admin user
+  const adminHashedPassword = await hashPassword('admin123');
   const adminUser = await db.user.upsert({
     where: { email: 'admin@trovira.com' },
-    update: {},
+    update: {
+      password: adminHashedPassword,
+    },
     create: {
       email: 'admin@trovira.com',
       name: 'Trovira Admin',
-      password: 'admin123',
+      password: adminHashedPassword,
       role: 'admin',
     },
   });
@@ -132,13 +138,16 @@ async function seed() {
   });
 
   // Create client users for each company
+  const clientHashedPassword = await hashPassword('client123');
   await db.user.upsert({
     where: { email: 'raj@abcschool.com' },
-    update: {},
+    update: {
+      password: clientHashedPassword,
+    },
     create: {
       email: 'raj@abcschool.com',
       name: 'Raj Sharma',
-      password: 'client123',
+      password: clientHashedPassword,
       role: 'client',
       companyId: company1.id,
     },

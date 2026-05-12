@@ -7,11 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { LogIn, ArrowLeft, KeyRound } from 'lucide-react';
+import { LogIn, ArrowLeft, KeyRound, Mail, ShieldCheck } from 'lucide-react';
 
 export function LoginPage() {
-  const { login, forgotPassword, isLoading } = useAppStore();
-  const [mode, setMode] = useState<'login' | 'forgot'>('login');
+  const { login, requestOTP, verifyOTP, isLoading } = useAppStore();
+  
+  // Three modes: login, request-otp (step 1), reset-password (step 2)
+  const [mode, setMode] = useState<'login' | 'request-otp' | 'reset-password'>('login');
 
   // Login form state
   const [email, setEmail] = useState('');
@@ -20,10 +22,12 @@ export function LoginPage() {
 
   // Forgot password form state
   const [fpEmail, setFpEmail] = useState('');
+  const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fpError, setFpError] = useState('');
   const [fpSuccess, setFpSuccess] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,13 +38,40 @@ export function LoginPage() {
     }
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
+  // Step 1: Request OTP
+  const handleRequestOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setFpError('');
     setFpSuccess('');
 
-    if (!fpEmail || !newPassword || !confirmPassword) {
-      setFpError('All fields are required');
+    if (!fpEmail) {
+      setFpError('Email is required');
+      return;
+    }
+
+    const result = await requestOTP(fpEmail);
+    if (result.success) {
+      setOtpSent(true);
+      setFpSuccess(result.message || 'OTP sent to your email. Please check and enter the code.');
+      setMode('reset-password');
+    } else {
+      setFpError(result.error || 'Failed to send OTP');
+    }
+  };
+
+  // Step 2: Verify OTP and reset password
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFpError('');
+    setFpSuccess('');
+
+    if (!otp) {
+      setFpError('OTP is required');
+      return;
+    }
+
+    if (!newPassword || !confirmPassword) {
+      setFpError('New password and confirm password are required');
       return;
     }
 
@@ -54,33 +85,44 @@ export function LoginPage() {
       return;
     }
 
-    const result = await forgotPassword(fpEmail, newPassword, confirmPassword);
+    const result = await verifyOTP(fpEmail, otp, newPassword, confirmPassword);
     if (result.success) {
       setFpSuccess('Password reset successfully! Please login with your new password.');
-      setFpEmail('');
-      setNewPassword('');
-      setConfirmPassword('');
-      // Switch back to login after 2 seconds
+      // Reset and go back to login after 3 seconds
       setTimeout(() => {
         setMode('login');
+        setFpEmail('');
+        setOtp('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setOtpSent(false);
         setFpSuccess('');
-      }, 2500);
+      }, 3000);
     } else {
       setFpError(result.error || 'Failed to reset password');
     }
   };
 
   const switchToForgot = () => {
-    setMode('forgot');
+    setMode('request-otp');
     setLoginError('');
     setFpError('');
     setFpSuccess('');
+    setOtpSent(false);
   };
 
   const switchToLogin = () => {
     setMode('login');
     setFpError('');
     setFpSuccess('');
+    setOtpSent(false);
+  };
+
+  const switchToRequestOTP = () => {
+    setMode('request-otp');
+    setFpError('');
+    setFpSuccess('');
+    setOtp('');
   };
 
   return (
@@ -153,20 +195,20 @@ export function LoginPage() {
           </Card>
         )}
 
-        {/* Forgot Password Form */}
-        {mode === 'forgot' && (
+        {/* Step 1: Request OTP */}
+        {mode === 'request-otp' && (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <KeyRound className="w-5 h-5" />
+                <Mail className="w-5 h-5" />
                 Reset Password
               </CardTitle>
               <CardDescription>
-                Enter your admin email and a new password
+                Enter your email to receive an OTP code
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleForgotPassword} className="space-y-4">
+              <form onSubmit={handleRequestOTP} className="space-y-4">
                 {fpError && (
                   <Alert variant="destructive">
                     <AlertDescription>{fpError}</AlertDescription>
@@ -187,6 +229,74 @@ export function LoginPage() {
                     onChange={(e) => setFpEmail(e.target.value)}
                     required
                   />
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Mail className="w-4 h-4 mr-2" />
+                  {isLoading ? 'Sending OTP...' : 'Send OTP'}
+                </Button>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={switchToLogin}
+                    className="text-sm text-teal-600 hover:text-teal-700 hover:underline font-medium inline-flex items-center gap-1"
+                  >
+                    <ArrowLeft className="w-3 h-3" />
+                    Back to Login
+                  </button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 2: Verify OTP & Reset Password */}
+        {mode === 'reset-password' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5" />
+                Verify OTP & Reset Password
+              </CardTitle>
+              <CardDescription>
+                Enter the OTP sent to your email and create a new password
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                {fpError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{fpError}</AlertDescription>
+                  </Alert>
+                )}
+                {fpSuccess && (
+                  <Alert className="bg-green-50 text-green-800 border-green-200">
+                    <AlertDescription>{fpSuccess}</AlertDescription>
+                  </Alert>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="fp-email-display">Email</Label>
+                  <Input
+                    id="fp-email-display"
+                    type="email"
+                    value={fpEmail}
+                    disabled
+                    className="bg-gray-100"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="otp">OTP Code</Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    placeholder="Enter 6-digit OTP"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    maxLength={6}
+                    required
+                  />
+                  <p className="text-xs text-gray-500">
+                    Check your email for the 6-digit OTP code
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="fp-new-password">New Password</Label>
@@ -211,14 +321,24 @@ export function LoginPage() {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  <KeyRound className="w-4 h-4 mr-2" />
-                  {isLoading ? 'Resetting...' : 'Reset Password'}
+                  <ShieldCheck className="w-4 h-4 mr-2" />
+                  {isLoading ? 'Verifying...' : 'Verify & Reset Password'}
                 </Button>
                 <div className="text-center">
                   <button
                     type="button"
-                    onClick={switchToLogin}
+                    onClick={switchToRequestOTP}
                     className="text-sm text-teal-600 hover:text-teal-700 hover:underline font-medium inline-flex items-center gap-1"
+                  >
+                    <ArrowLeft className="w-3 h-3" />
+                    Request new OTP
+                  </button>
+                </div>
+                <div className="text-center pt-2 border-t">
+                  <button
+                    type="button"
+                    onClick={switchToLogin}
+                    className="text-sm text-gray-500 hover:text-gray-700 inline-flex items-center gap-1"
                   >
                     <ArrowLeft className="w-3 h-3" />
                     Back to Login
@@ -232,4 +352,3 @@ export function LoginPage() {
     </div>
   );
 }
-

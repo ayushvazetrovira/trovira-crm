@@ -46,10 +46,12 @@ interface AppState {
   notifications: Notification[];
   showNotifications: boolean;
 
-  // Actions
+// Actions
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   forgotPassword: (email: string, newPassword: string, confirmPassword: string) => Promise<{ success: boolean; error?: string }>;
+  requestOTP: (email: string) => Promise<{ success: boolean; error?: string; message?: string }>;
+  verifyOTP: (email: string, otp: string, newPassword: string, confirmPassword: string) => Promise<{ success: boolean; error?: string }>;
   setAdminPage: (page: AdminPage) => void;
   setCrmPage: (page: CrmPage) => void;
   setIsTeamMember: (isTeamMember: boolean) => void;
@@ -109,13 +111,53 @@ user: null,
     set({ user: null, isAuthenticated: false, adminPage: 'dashboard', crmPage: 'dashboard', isTeamMember: false });
   },
 
-  forgotPassword: async (email: string, newPassword: string, confirmPassword: string) => {
+forgotPassword: async (email: string, newPassword: string, confirmPassword: string) => {
     set({ isLoading: true });
     try {
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, newPassword, confirmPassword }),
+      });
+      const data = await res.json();
+      set({ isLoading: false });
+      if (res.ok && data.success) {
+        return { success: true };
+      }
+      return { success: false, error: data.error || 'Failed to reset password' };
+    } catch {
+      set({ isLoading: false });
+      return { success: false, error: 'Network error. Please try again.' };
+    }
+  },
+
+  requestOTP: async (email: string) => {
+    set({ isLoading: true });
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'request-otp', email }),
+      });
+      const data = await res.json();
+      set({ isLoading: false });
+      if (res.ok && data.success) {
+        return { success: true, message: data.message };
+      }
+      return { success: false, error: data.error || 'Failed to send OTP' };
+    } catch {
+      set({ isLoading: false });
+      return { success: false, error: 'Network error. Please try again.' };
+    }
+  },
+
+  verifyOTP: async (email: string, otp: string, newPassword: string, confirmPassword: string) => {
+    set({ isLoading: true });
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify-otp', email, otp, newPassword, confirmPassword }),
       });
       const data = await res.json();
       set({ isLoading: false });

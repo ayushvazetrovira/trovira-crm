@@ -1,36 +1,14 @@
-# WhatsApp Web Integration TODO
+# TODO - Fix login + dashboard errors
 
-## Approved Plan Steps
-
-### 1. Install Dependencies ✅
-- `bun add whatsapp-web.js qrcode-terminal puppeteer`
-
-### 2. Update Prisma Schema ✅
-- Add `whatsappSession String?` to `CrmSetting` model
-- Run `npx prisma migrate dev --name whatsapp-session`
-- `npx prisma generate`
-
-### 3. Create WhatsApp Client Manager ⏳
-- `src/lib/whatsapp.ts` - Multi-company client manager
-- `src/lib/whatsapp.ts` - Multi-company client manager
-
-### 4. Update CRM Settings
-- Edit `src/components/crm/crm-settings.tsx` - Add connect button/QR modal
-
-### 5. New API Routes
-- `src/app/api/crm/whatsapp/connect/route.ts` - QR generation
-- `src/app/api/crm/whatsapp/websocket/route.ts` - Real-time WS
-
-### 6. Update Inbox API
-- Edit `src/app/api/crm/whatsapp/route.ts` - Real client integration
-
-### 7. Update WhatsApp UI
-- Edit `src/components/crm/crm-whatsapp.tsx` - WS connection, real-time
-
-### 8. Test
-- Setup phone in settings → scan QR
-- Send/receive in inbox
-- Multi-company isolation
-
-**Next Step: Install dependencies and update schema.**
+## Plan
+1. Verify current failing auth path
+   - Confirm `/api/auth/login` returns `{ error: "Invalid credentials" }` unless request matches hardcoded credentials.
+2. Fix dashboard loading dependency on auth
+   - Ensure successful login returns the `user` object with required fields (at least `role`, and for CRM dashboards `companyId` if needed).
+3. Fix DB/dashboard API failures
+   - If `/api/admin/dashboard` or `/api/crm/dashboard` is failing due to missing DB tables/seed data, add safe fallbacks or ensure seed runs.
+4. Add targeted error messages
+   - Update frontend fetch handling so dashboard failures show actual backend error payload (not just “Failed to load dashboard”).
+5. Re-run dev server
+   - Start Next.js, then verify admin login flow and both dashboards.
 
